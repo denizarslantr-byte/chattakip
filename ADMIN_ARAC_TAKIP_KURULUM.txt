@@ -1,0 +1,28 @@
+PIANO DERİ — ADMIN ARAÇ TAKİP KURULUMU
+
+Bu sürümde Araç Takip sadece admin panelindedir.
+
+GitHub Pages linkleri:
+- Giriş: /giris/index.html
+- Admin: /admin/admin.html
+- Admin Araç Takip: /admin/arac-takip.html
+
+Giriş bilgisi:
+- Kullanıcı adı: admin
+- Şifre: 1907
+
+Firebase:
+- config/firebase.js ve config/firebase_arac_takip.js dosyaları chattakip-32c31 projesine göre ayarlandı.
+- Firebase Realtime Database içine firebase_import_chattakip_arac_takip.json dosyasını Import JSON ile yükleyin.
+
+Admin Araç Takip içindeki bölümler:
+1) Harita
+2) Araçlar
+3) Otel Koordinatları
+4) Plaka Eşleştirme
+5) Ayarlar
+
+OpenStreetMap kullanır. Google Maps API ve Google Cloud faturası gerekmez.
+
+TNB canlı bağlantı notu:
+Statik GitHub Pages doğrudan TNB SOAP servisine bağlanamayabilir. Canlı bağlantı için Firebase Function proxy URL alanı doldurulmalıdır. Proxy yokken sistem Demo Mod ile açılır; araç/otel/plaka verilerini Firebase'e kaydedebilirsiniz.

@@ -1,0 +1,77 @@
+{
+  "kullanicilar": {
+    "1": {
+      "id": 1,
+      "username": "admin",
+      "password": "1907",
+      "name": "Admin",
+      "role": "admin",
+      "status": "ACTIVE"
+    },
+    "2": {
+      "id": 2,
+      "username": "merkez",
+      "password": "1907",
+      "name": "Merkez",
+      "role": "merkez",
+      "status": "ACTIVE"
+    }
+  },
+  "aracTakip": {
+    "ayarlar": {
+      "tnbUrl": "https://ws.ats.tnbmobil.com.tr/webservis.asmx",
+      "tnbCompany": "3029",
+      "tnbUsername": "kayaderiwb",
+      "tnbPassword": "1234",
+      "proxyUrl": "",
+      "storeLat": 36.5979,
+      "storeLng": 30.5636,
+      "alertKm": 1,
+      "refreshSec": 60,
+      "regionLat": 36.5979,
+      "regionLng": 30.5636
+    },
+    "otelKonumlari": {
+      "BELDIBI_MERKEZ": {
+        "hotel": "Beldibi Bölge Merkezi",
+        "bolge": "Beldibi",
+        "lat": 36.7134,
+        "lng": 30.5658
+      },
+      "GOYNUK_MERKEZ": {
+        "hotel": "Göynük Bölge Merkezi",
+        "bolge": "Göynük",
+        "lat": 36.6601,
+        "lng": 30.5501
+      },
+      "KEMER_MERKEZ": {
+        "hotel": "Kemer Bölge Merkezi",
+        "bolge": "Kemer",
+        "lat": 36.6014,
+        "lng": 30.5595
+      },
+      "KIRIS_MERKEZ": {
+        "hotel": "Kiriş Bölge Merkezi",
+        "bolge": "Kiriş",
+        "lat": 36.575,
+        "lng": 30.5765
+      },
+      "CAMYUVA_MERKEZ": {
+        "hotel": "Çamyuva Bölge Merkezi",
+        "bolge": "Çamyuva",
+        "lat": 36.5581,
+        "lng": 30.5642
+      },
+      "TEKIROVA_MERKEZ": {
+        "hotel": "Tekirova Bölge Merkezi",
+        "bolge": "Tekirova",
+        "lat": 36.5018,
+        "lng": 30.5273
+      }
+    },
+    "araclar": {},
+    "plakaEslesme": {},
+    "sonKonumlar": {},
+    "uyarilar": {}
+  }
+}
