@@ -1,12 +1,12 @@
 // Piano Deri — Firebase Konfigürasyon
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAUJG2YGDwKqGcYZ7yhiS-_Jg7vdIyaCfs",
-  authDomain: "rezervasyon-3f1b7.firebaseapp.com",
-  databaseURL: "https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "rezervasyon-3f1b7",
-  storageBucket: "rezervasyon-3f1b7.firebasestorage.app",
-  messagingSenderId: "311071244350",
-  appId: "1:311071244350:web:c82f856965d15a676f516f"
+  apiKey: "BURAYA_FIREBASE_API_KEY",
+  authDomain: "chattakip-32c31.firebaseapp.com",
+  databaseURL: "https://chattakip-32c31-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "chattakip-32c31",
+  storageBucket: "chattakip-32c31.appspot.com",
+  messagingSenderId: "BURAYA_SENDER_ID",
+  appId: "BURAYA_APP_ID"
 };
 
 const ADMIN_PIN_KEY = "adminPin";
