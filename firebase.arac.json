@@ -1,0 +1,16 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/tnbLiveVehicles", "function": "tnbLiveVehicles" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  },
+  "database": {
+    "rules": "database.rules.arac.json"
+  },
+  "functions": {
+    "source": "functions"
+  }
+}

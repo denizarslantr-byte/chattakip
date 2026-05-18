@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Piano Deri — Giriş</title>
+<link rel="stylesheet" href="../assets/piano-theme.css">
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:var(--bg)}
+.login-wrap{width:100%;max-width:380px;padding:0 20px}
+.login-card{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:32px 28px;margin-top:20px}
+.login-card h2{color:var(--gold2);margin:0 0 24px;font-size:16px;text-transform:uppercase;letter-spacing:1px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
+.field input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px 14px;font-size:15px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--gold)}
+.btn-login{width:100%;background:linear-gradient(135deg,#d6a63f,#a07830);border:none;border-radius:10px;color:#1a0f00;padding:14px;font-size:15px;font-weight:900;cursor:pointer;margin-top:8px;letter-spacing:.5px}
+.btn-login:hover{opacity:.9}
+.err-msg{color:#f87171;font-size:13px;margin-top:12px;text-align:center;min-height:20px}
+.loading-msg{color:var(--gold2);font-size:13px;margin-top:12px;text-align:center}
+</style>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#d6a63f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Piano Deri">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="app-brand">
+    <div class="p">P</div>
+    <div class="name">PIANO DERİ</div>
+    <div class="sub">SİSTEM GİRİŞİ</div>
+  </div>
+
+  <div class="login-card">
+    <h2>🔐 Kullanıcı Girişi</h2>
+    <div class="field">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="uname" placeholder="kullanıcı adı" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="field">
+      <label>Şifre</label>
+      <input type="password" id="upass" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn-login" onclick="doLogin()">GİRİŞ YAP</button>
+    <div class="err-msg" id="errMsg"></div>
+    <div class="loading-msg" id="loadMsg" style="display:none">Kontrol ediliyor...</div>
+  </div>
+</div>
+
+<script src="../config/config.js"></script>
+<script src="../config/firebase.js"></script>
+<script src="../assets/common.js"></script>
+<script src="../assets/firebase-api.js"></script>
+<script>
+// Zaten giriş yapılmışsa yönlendir
+const existing = JSON.parse(sessionStorage.getItem('pianoUser')||'null');
+if (existing) redirectUser(existing.role);
+
+const ROLE_MAP = {
+  merkez:  '../center/dashboard.html',
+  admin:   '../admin/admin.html',
+  patron:  '../patron/index.html',
+  boss:    '../patron/index.html',
+  izleme:  '../boss/dashboard.html'
+};
+
+function redirectUser(role) {
+  const url = ROLE_MAP[role] || '../hotel/login.html';
+  window.location.replace(url);
+}
+
+async function doLogin() {
+  const username = document.getElementById('uname').value.trim();
+  const password = document.getElementById('upass').value;
+  const errEl    = document.getElementById('errMsg');
+  const loadEl   = document.getElementById('loadMsg');
+
+  errEl.innerText = '';
+  if (!username || !password) { errEl.innerText = 'Kullanıcı adı ve şifre girin.'; return; }
+
+  loadEl.style.display = 'block';
+
+  try {
+    const user = await loginUser(username, password);
+    if (user) {
+      sessionStorage.setItem('pianoUser', JSON.stringify({
+        id:       user.id,
+        username: user.username,
+        name:     user.name || user.username,
+        role:     user.role
+      }));
+      redirectUser(user.role);
+    } else {
+      errEl.innerText = '❌ Kullanıcı adı veya şifre hatalı.';
+      document.getElementById('upass').value = '';
+    }
+  } catch(e) {
+    errEl.innerText = '❌ Bağlantı hatası. Tekrar deneyin.';
+  }
+  loadEl.style.display = 'none';
+}
+</script>
+</body>
+</html>

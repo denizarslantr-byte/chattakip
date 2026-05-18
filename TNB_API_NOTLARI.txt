@@ -1,0 +1,42 @@
+TNB MOBIL SOAP SERVISLERI
+=========================
+
+Servis adresi:
+https://ws.ats.tnbmobil.com.tr/webservis.asmx
+
+Kullanılan servisler:
+1) wsGetAllVehicles
+   Araç listesini verir.
+   Dönen önemli alanlar:
+   - DeviceId
+   - License_Plate
+   - Device_Type
+
+2) wsGetLastLocations
+   Canlı / son konum bilgisini verir.
+   Gönderilen alanlar:
+   - UserName
+   - Password
+   - CompanyCode
+   - DeviceID
+
+   Dönen önemli alanlar:
+   - DeviceId
+   - License_Plate
+   - Address
+   - Lat
+   - Lng
+   - Speed
+   - Mileage
+   - Driver
+   - Ignition
+   - WorkingHour
+
+3) wsMileageReport
+   Günlük / tarih aralıklı KM raporu için kullanılabilir.
+   Gönderilen alanlar:
+   - DeviceID
+   - Startdate
+   - Enddate
+
+Bu zipte canlı harita için wsGetLastLocations kullanılır.

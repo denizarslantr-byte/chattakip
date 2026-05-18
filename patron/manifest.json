@@ -1,0 +1,16 @@
+{
+  "name": "Piano Deri Patron",
+  "short_name": "Piano Patron",
+  "description": "Piano Deri Patron Paneli",
+  "start_url": "/patron/index.html",
+  "scope": "/patron/",
+  "display": "standalone",
+  "background_color": "#07080f",
+  "theme_color": "#d6a63f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "/icons/icon-192.png","sizes": "192x192","type": "image/png","purpose": "any maskable"},
+    {"src": "/icons/icon-512.png","sizes": "512x512","type": "image/png","purpose": "any maskable"}
+  ],
+  "lang": "tr"
+}

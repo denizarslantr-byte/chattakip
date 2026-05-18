@@ -1,0 +1,29 @@
+{
+  "name": "Piano Deri İzleme",
+  "short_name": "Piano İzleme",
+  "description": "Piano Deri Patron İzleme Paneli",
+  "start_url": "/boss/index.html",
+  "scope": "/boss/",
+  "display": "standalone",
+  "background_color": "#07080f",
+  "theme_color": "#d6a63f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business"
+  ],
+  "lang": "tr"
+}

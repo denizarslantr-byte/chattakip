@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Piano Deri — İzleme</title>
+  <link rel="stylesheet" href="../assets/piano-theme.css">
+  <style>
+  /* Sadece izleme — hiç edit yok */
+  input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.8) brightness(1.5) sepia(0.3) saturate(2) hue-rotate(10deg);cursor:pointer;opacity:.85}
+
+  .ro-table{width:100%;border-collapse:collapse;font-size:12px}
+  .ro-table th{background:var(--bg2);color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.4px;padding:8px 7px;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
+  .ro-table td{padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+  .ro-table tr.row-cikti td{color:#6ee7a0;opacity:.75}
+  .ro-table tr.row-girdi td{color:#fde68a}
+  .ro-table tr.row-cancel td{color:#6b7280;opacity:.5;text-decoration:line-through}
+
+  .time-sep{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;margin:12px 0 5px;font-weight:800}
+  .time-sep.aktif{background:rgba(160,120,48,.1);border:1px solid rgba(160,120,48,.3)}
+  .time-sep.done{background:rgba(107,114,128,.08);border:1px solid rgba(107,114,128,.2);opacity:.8}
+  .time-sep .ts-time{color:var(--gold2);font-size:15px}
+  .time-sep.done .ts-time{color:#9ca3af}
+  .time-sep .ts-cnt{font-size:11px;color:var(--text2);font-weight:400}
+
+  .sec-banner{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;margin:16px 0 8px;font-size:12px;font-weight:800}
+  .sec-banner.aktif{background:rgba(160,120,48,.12);border:1px solid rgba(160,120,48,.35);color:var(--gold2)}
+  .sec-banner.done{background:rgba(107,114,128,.1);border:1px solid rgba(107,114,128,.25);color:#9ca3af}
+
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:blink-dot 1.4s ease-in-out infinite}
+  @keyframes blink-dot{0%,100%{opacity:1}50%{opacity:.2}}
+
+  .cnt-badge{font-size:9px;color:var(--gold2);font-weight:900;margin-left:2px}
+  </style>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#d6a63f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Piano Deri">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
+</head>
+<body>
+<div class="app">
+
+  <div class="app-brand">
+    <div class="p">P</div>
+    <div class="name">PIANO DERİ</div>
+    <div class="sub" style="display:flex;align-items:center;gap:6px">
+      MERKEZ İZLEME
+      <span class="live-dot"></span>
+    </div>
+  </div>
+
+  <!-- Üst çubuk — sadece tarih + otel filtre, işlem yok -->
+  <div class="panel-card" style="padding:9px 14px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <label style="margin:0;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">TARİH</label>
+      <input type="date" id="datePicker" style="width:140px">
+      <span id="dateDisplay" style="font-size:13px;color:var(--gold2);font-weight:700;white-space:nowrap"></span>
+      <span style="font-size:11px;color:var(--text2);font-weight:600">OTEL</span>
+      <select id="topHotelFilter" style="min-width:200px;flex:1;max-width:320px"><option value="">Tüm Oteller</option></select>
+      <button class="btn-dark btn-sm" onclick="loadAll()" style="padding:6px 9px;font-size:14px">↺</button>
+      <button class="btn-gold btn-sm" onclick="loadAll()">Göster</button>
+      <span id="lastRefresh" style="font-size:10px;color:var(--text2);margin-left:4px"></span>
+    </div>
+  </div>
+
+  <div class="center-layout">
+
+    <!-- Sol — sadece Ana Ekran -->
+    <aside class="side-menu panel-card">
+      <button class="btn-dark active-menu" style="pointer-events:none">🏠 Ana Ekran</button>
+      <div style="margin-top:12px;padding:8px;background:rgba(160,120,48,.06);border:1px solid rgba(160,120,48,.2);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.6">
+        🔒 Bu ekran<br><b style="color:var(--gold2)">salt okunur</b><br>izleme modundadır.<br>Değişiklik yapılamaz.
+      </div>
+    </aside>
+
+    <!-- Ana içerik — read only tablo -->
+    <main style="min-width:0;overflow:hidden">
+      <div id="reservationList"></div>
+    </main>
+
+    <!-- Sağ panel — personel + özet -->
+    <aside style="min-width:0">
+      <div class="panel-card">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">
+          Personel · <b id="selectedDateLabel" style="color:var(--gold)"></b>
+        </div>
+        <div style="margin-bottom:9px">
+          <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Boşta <span id="freeCount" style="color:var(--gold2)"></span></div>
+          <div id="freeStaffList" class="staff-list"></div>
+        </div>
+        <div style="margin-bottom:9px">
+          <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Programda <span id="busyCount" style="color:var(--gold2)"></span></div>
+          <div id="busyStaffList" class="staff-list"></div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">İzinli <span id="offCount" style="color:var(--gold2)"></span></div>
+          <div id="offStaffList" class="staff-list"></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">Günlük Özet</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <div style="text-align:center"><div id="sumTotal" style="font-size:20px;font-weight:900;color:var(--gold2)">—</div><div style="font-size:9px;color:var(--text2)">REZERVASYON</div></div>
+          <div style="text-align:center"><div id="sumPax"   style="font-size:20px;font-weight:900;color:var(--gold2)">—</div><div style="font-size:9px;color:var(--text2)">PAX</div></div>
+          <div style="text-align:center"><div id="sumIn"    style="font-size:20px;font-weight:900;color:#fde68a">—</div><div style="font-size:9px;color:var(--text2)">İÇERİDE</div></div>
+          <div style="text-align:center"><div id="sumOut"   style="font-size:20px;font-weight:900;color:#bbf7d0">—</div><div style="font-size:9px;color:var(--text2)">TAMAMLANDI</div></div>
+          <div style="text-align:center"><div id="sumSatis" style="font-size:20px;font-weight:900;color:#60a5fa">—</div><div style="font-size:9px;color:var(--text2)">SATIŞ</div></div>
+          <div style="text-align:center"><div id="sumBos"   style="font-size:20px;font-weight:900;color:#f87171">—</div><div style="font-size:9px;color:var(--text2)">BOŞ ✦</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--text2);margin-top:6px;opacity:.6">✦ Satış olmadan tamamlanan</div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script src="../config/config.js?v=20260516-boss-dashboard"></script>
+<script src="../config/firebase.js?v=20260516-boss-dashboard"></script>
+<script src="../assets/common.js?v=20260516-boss-dashboard"></script>
+<script src="../assets/firebase-api.js?v=20260516-boss-dashboard"></script>
+<script>
+(function(){const u=JSON.parse(sessionStorage.getItem('pianoUser')||'null');if(!u||!['boss','patron','admin'].includes(u.role)){sessionStorage.removeItem('pianoUser');window.location.replace('../giris/index.html');}window._pianoUser=u;})();
+function logout(){sessionStorage.removeItem('pianoUser');window.location.href='../giris/index.html';}
+let reservations = [], staff = [], hotels = [], plakalar = [];
+
+const today = todayStr();
+datePicker.value = today;
+
+function updateDateDisplay() {
+  dateDisplay.innerText = fmtDate(datePicker.value);
+  selectedDateLabel.innerText = fmtDate(datePicker.value);
+}
+updateDateDisplay();
+datePicker.addEventListener("change", () => { updateDateDisplay(); });
+document.getElementById("topHotelFilter")?.addEventListener("change", renderReservations);
+
+// ── Veri ──────────────────────────────────────────────────────
+async function loadAll() {
+  updateDateDisplay();
+  [reservations, staff, hotels, plakalar] = await Promise.all([
+    getReservations(datePicker.value),
+    getStaffWithOffDates(),
+    getHotels(),
+    getPlakalar()
+  ]);
+  if (!Array.isArray(reservations)) reservations = [];
+  if (!Array.isArray(staff))        staff = [];
+  if (!Array.isArray(hotels))       hotels = [];
+  if (!Array.isArray(plakalar))     plakalar = [];
+  renderTopHotelFilter();
+  renderReservations();
+  renderStaffPanel();
+  renderSummary();
+  lastRefresh.innerText = "Son: " + new Date().toTimeString().slice(0,5);
+}
+
+function renderTopHotelFilter() {
+  const sel = document.getElementById("topHotelFilter");
+  if (!sel) return;
+  const cur = sel.value || "";
+  const names = [...new Set([
+    ...reservations.map(r=>r.hotel),
+    ...hotels.map(h=>h.hotel)
+  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+  sel.innerHTML = '<option value="">Tüm Oteller</option>' + names.map(h=>`<option value="${h}">${h}</option>`).join("");
+  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}
+
+function visibleReservations() {
+  const h = document.getElementById("topHotelFilter")?.value || "";
+  return h ? reservations.filter(r => r.hotel === h) : reservations;
+}
+
+// ── Personel ──────────────────────────────────────────────────
+function isOff(s) {
+  return String(s.offDates || "").split(",").map(x=>x.trim()).filter(Boolean).includes(datePicker.value);
+}
+function busySet() {
+  const u = new Set();
+  reservations.forEach(r => {
+    if (r.status === "CANCELLED") return;
+    if (String(r.cikti).toUpperCase() === "TRUE") return;
+    [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(x => u.add(x));
+  });
+  return u;
+}
+function freeStaff()  { const b=busySet(); return staff.filter(s=>s.status==="ACTIVE"&&!isOff(s)&&!b.has(s.name)); }
+function busyStaff2() { const b=busySet(); return staff.filter(s=>b.has(s.name)); }
+function offStaff()   { return staff.filter(s=>isOff(s)); }
+
+function renderStaffPanel() {
+  const staffProgramCount = {};
+  reservations.forEach(r => {
+    if (r.status === "CANCELLED") return;
+    [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n => {
+      staffProgramCount[n] = (staffProgramCount[n]||0)+1;
+    });
+  });
+  const f=freeStaff(), b=busyStaff2(), o=offStaff();
+  freeCount.innerText=`(${f.length})`; busyCount.innerText=`(${b.length})`; offCount.innerText=`(${o.length})`;
+
+  function pills(arr, cls) {
+    if (!arr.length) return '<span style="color:var(--text2);font-size:11px">—</span>';
+    return `<div style="display:flex;flex-wrap:wrap;gap:4px">${arr.map(s=>{
+      const cnt = staffProgramCount[s.name]||0;
+      return `<span class="staff-pill ${cls}">${firstName(s.name)}${cnt?`<span class="cnt-badge">(${cnt})</span>`:''}  </span>`;
+    }).join("")}</div>`;
+  }
+  freeStaffList.innerHTML = pills(f, "staff-free");
+  busyStaffList.innerHTML = pills(b, "staff-busy");
+  offStaffList.innerHTML  = pills(o, "staff-off");
+}
+
+// ── Özet ──────────────────────────────────────────────────────
+function renderSummary() {
+  const total = reservations.length;
+  const pax   = reservations.reduce((s,r)=>s+(Number(r.adult)||0)+(Number(r.child)||0),0);
+  const inside= reservations.filter(r=>String(r.girdi).toUpperCase()==="TRUE"&&String(r.cikti).toUpperCase()!=="TRUE"&&r.status!=="CANCELLED").length;
+  const done  = reservations.filter(r=>String(r.cikti).toUpperCase()==="TRUE").length;
+  const satis = reservations.filter(r=>String(r.satis||"").toUpperCase()==="TRUE"&&r.status!=="CANCELLED").length;
+  const bos   = reservations.filter(r=>String(r.cikti).toUpperCase()==="TRUE"&&String(r.satis||"").toUpperCase()!=="TRUE").length;
+  sumTotal.innerText=total; sumPax.innerText=pax; sumIn.innerText=inside; sumOut.innerText=done;
+  sumSatis.innerText=satis; sumBos.innerText=bos;
+}
+
+// ── Read-only rezervasyon listesi ──────────────────────────────
+function rowClass(r) {
+  if (r.status==="CANCELLED") return "row-cancel";
+  if (String(r.cikti).toUpperCase()==="TRUE") return "row-cikti";
+  if (String(r.girdi).toUpperCase()==="TRUE")  return "row-girdi";
+  return "";
+}
+function badge(r) {
+  if (r.status==="CANCELLED") return '<span class="badge cancelled">İPTAL</span>';
+  if (String(r.cikti).toUpperCase()==="TRUE") return '<span class="badge exited">ÇIKTI</span>';
+  if (String(r.girdi).toUpperCase()==="TRUE")  return '<span class="badge entered">GİRDİ</span>';
+  if (r.status==="UPDATED") return '<span class="badge updated">GÜNCELLENDİ</span>';
+  return '<span class="badge pending">BEKLİYOR</span>';
+}
+
+function renderReservations() {
+  const list = visibleReservations();
+  if (!list.length) {
+    reservationList.innerHTML = `<div class="panel-card" style="text-align:center;color:var(--text2);padding:28px">
+      ${fmtDate(datePicker.value)} tarihinde seçilen otel için rezervasyon yok.</div>`;
+    return;
+  }
+
+  const aktif      = list.filter(r => r.status!=="CANCELLED" && String(r.cikti).toUpperCase()!=="TRUE");
+  const tamamlanan = list.filter(r => r.status==="CANCELLED" || String(r.cikti).toUpperCase()==="TRUE");
+
+  function groupByTime(arr) {
+    const g={};arr.forEach(r=>{if(!g[r.time])g[r.time]=[];g[r.time].push(r);});return g;
+  }
+
+  function renderRows(grpMap, isDone) {
+    const keys = Object.keys(grpMap).sort();
+    if (!keys.length) return "";
+    return keys.map(t => `
+      <div class="time-sep ${isDone?"done":"aktif"}">
+        <span class="ts-time">⏰ ${t}</span>
+        <span class="ts-cnt">${grpMap[t].length} rezervasyon</span>
+      </div>
+      <div class="panel-card table-wrap" style="padding:0;margin-bottom:6px;${isDone?"opacity:.72":""}">
+        <table class="ro-table">
+          <thead><tr>
+            <th>Durum</th><th>Saat</th><th>Otel</th><th>Yet.</th><th>Çoc.</th>
+            <th>Uyruk</th><th>Kart</th><th>Plaka</th><th>Personel</th><th>Satış</th><th>Not</th>
+          </tr></thead>
+          <tbody>
+            ${grpMap[t].map(r=>`
+              <tr class="${rowClass(r)}">
+                <td>${badge(r)}</td>
+                <td><b style="color:var(--gold2)">${r.time}</b></td>
+                <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.hotel}</td>
+                <td>${r.adult}</td>
+                <td>${r.child}</td>
+                <td>${r.nation||""}</td>
+                <td>${r.kart||""}</td>
+                <td style="font-size:11px">${r.ayak||""}</td>
+                <td style="font-size:11px">${[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).join(", ")}</td>
+                <td>${String(r.satis||"").toUpperCase()==="TRUE"?'<span style="color:#60a5fa;font-weight:700">SATIŞ</span>':'<span style="color:#f87171;font-size:11px">Boş</span>'}</td>
+                <td style="font-size:11px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${r.notes||""}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`).join("");
+  }
+
+  const aktifGrp = groupByTime(aktif);
+  const tamGrp   = groupByTime(tamamlanan);
+
+  reservationList.innerHTML = `
+    ${aktif.length ? `<div class="sec-banner aktif">🟡 Aktif Rezervasyonlar <span style="font-size:11px;font-weight:400;margin-left:4px">${aktif.length} kayıt</span></div>${renderRows(aktifGrp,false)}` : ""}
+    ${tamamlanan.length ? `<div class="sec-banner done">✅ Tamamlanan / İptal <span style="font-size:11px;font-weight:400;margin-left:4px">${tamamlanan.length} kayıt</span></div>${renderRows(tamGrp,true)}` : ""}
+  `;
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────
+loadAll();
+setInterval(() => { loadAll(); }, 15000);
+</script>
+</body>
+</html>

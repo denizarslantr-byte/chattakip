@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piano Deri Admin V6.0</title>
+  <link rel="stylesheet" href="../assets/piano-theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;display:flex;align-items:center;justify-content:center;padding:14px; }
+    .modal-box { background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto; }
+    .modal-box h3 { color:var(--gold2);margin-top:0; }
+    /* Tarih seçici ikonlarını görünür yap */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8) brightness(1.5) sepia(0.3) saturate(2) hue-rotate(10deg);
+      cursor: pointer; opacity: 0.85;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    input[type="date"] { color-scheme: dark; }
+    /* Rapor butonları */
+    .r6-row{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .r6-num{font-size:18px;font-weight:900;color:var(--gold2);min-width:22px}
+    .r6-ico{font-size:14px}
+    .r6-title{flex:1;font-weight:700;font-size:13px}
+    .r6-show{min-width:80px}
+  </style>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#d6a63f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Piano Deri">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
+</head>
+<body>
+<div class="app">
+
+  <div class="app-brand">
+    <div class="p">P</div>
+    <div class="name">PIANO DERİ</div>
+    <div class="sub">ADMİN PANELİ — V6.0</div>
+  </div>
+
+  <div id="apiWarning" class="notice" style="display:none"></div>
+
+  <!-- ── Giriş (pianoUser auth varsa gösterilmez) ── -->
+  <section id="pinSection" class="panel-card" style="max-width:460px;margin:0 auto 16px;display:none">
+    <h2 style="color:var(--gold2);margin-top:0">Admin Girişi</h2>
+    <label>Admin PIN</label>
+    <input id="adminPin" type="password" placeholder="PIN girin" onkeydown="if(event.key==='Enter')adminLogin()">
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 14px;color:#c0c0c0;font-size:13px">
+      <input type="checkbox" id="rememberAdmin">
+      <span>Beni hatırla</span>
+    </div>
+    <button class="btn-gold" style="width:100%" onclick="adminLogin()">GİRİŞ YAP</button>
+  </section>
+
+  <!-- ── Panel ── -->
+  <section id="adminPanel" style="display:none">
+    <div class="panel-card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <span style="color:var(--gold2);font-weight:700">⚙️ Admin Paneli</span>
+      <span id="adminUserLabel" style="font-size:11px;color:var(--text2)"></span>
+      <div style="flex:1"></div>
+      <a href="../center/dashboard.html" class="btn-dark btn-sm" style="text-decoration:none">🏠 Merkez</a>
+      <a href="../hotel/login.html"      class="btn-dark btn-sm" style="text-decoration:none">🏨 Otel</a>
+      <button class="btn-red btn-sm" onclick="logout()">⏏ Çıkış</button>
+    </div>
+
+    <div class="tab-bar">
+      <button id="tab1" class="tab-btn active" onclick="openTab(1)">🏨 Oteller</button>
+      <button id="tab2" class="tab-btn"        onclick="openTab(2)">📊 Raporlar</button>
+      <button id="tab3" class="tab-btn"        onclick="openTab(3)">📋 Log</button>
+      <button id="tab4" class="tab-btn"        onclick="openTab(4)">⚙️ Ayarlar</button>
+      <button id="tab5" class="tab-btn"        onclick="openTab(5);loadPlakaRapor()">🚗 Araç Raporu</button>
+      <button id="tab6" class="tab-btn"        onclick="openTab(6)" style="background:linear-gradient(135deg,rgba(160,120,48,.4),rgba(241,212,138,.15));border-color:var(--gold)">📥 Admin Raporları</button>
+      <button id="tab7" class="tab-btn"        onclick="openTab(7);loadUsers()">👤 Kullanıcılar</button>
+      <button id="tab8" class="tab-btn"        onclick="openTab(8)">📥 İçe Aktar</button>
+    </div>
+
+    <!-- TAB 1: Oteller -->
+    <div id="tabContent1">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">Yeni Otel Ekle</h3>
+        <div class="grid grid4">
+          <div><label>Otel Adı</label><input id="nHotelName" placeholder="Lara Hotel"></div>
+          <div><label>Kullanıcı Kodu</label><input id="nHotelCode" placeholder="PD001"></div>
+          <div><label>Şifre</label><input id="nHotelPass" placeholder="Şifre"></div>
+          <div><label>Acenta Kodu</label><input id="nHotelAcenta" placeholder="ACN-001"></div>
+        </div>
+        <br>
+        <button class="btn-gold" onclick="saveHotel()">+ Oteli Ekle</button>
+        <input type="file" id="hotelImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importHotelsExcel(event)">
+        <button class="btn-dark" onclick="document.getElementById('hotelImportFile').click()">📥 Excelden Otel İçe Aktar</button>
+        <button class="btn-dark" onclick="downloadHotelTemplate()">⬇ Otel Şablonu</button>
+      </div>
+
+      <div class="panel-card table-wrap">
+        <h3 style="color:var(--gold2);margin-top:0">Oteller</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Otel Adı</th><th>Kullanıcı Kodu</th><th>Şifre</th>
+              <th>Acenta Kodu</th><th>Durum</th><th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="hotelTableBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text2)">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Raporlar -->
+    <div id="tabContent2" style="display:none">
+      <div class="panel-card">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <h3 style="color:var(--gold2);margin:0;flex:1">📊 Raporlar</h3>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('today')">Bugün</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('week')">Bu Hafta</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('month')">Bu Ay</button>
+          <input type="date" id="aRStart" style="width:135px">
+          <span style="color:var(--text2)">—</span>
+          <input type="date" id="aREnd"   style="width:135px">
+          <select id="aRHotel" style="width:160px"><option value="">Oteller: Tümü</option></select>
+          <select id="aRPersonel" style="width:160px"><option value="">Personel: Tümü</option></select>
+          <select id="aRPlaka" style="width:160px"><option value="">Plaka: Tümü</option></select>
+          <button class="btn-gold btn-sm" onclick="loadAdminRapor()">Raporla</button>
+        </div>
+        <div id="adminRaporContent"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Log -->
+    <div id="tabContent3" style="display:none">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">📋 Log Filtrele</h3>
+        <div class="grid grid4">
+          <div>
+            <label>İşlem</label>
+            <select id="logActionF">
+              <option value="">Tümü</option>
+              <option>ADMIN_LOGIN</option><option>LOGIN</option>
+              <option>ADD_RES</option><option>UPDATE_OPS</option><option>SET_STATUS</option>
+              <option>ADD_HOTEL</option><option>UPDATE_HOTEL</option><option>DELETE_HOTEL</option>
+              <option>ADD_STAFF</option><option>DELETE_STAFF</option>
+              <option>STAFF_OFF</option><option>STAFF_OFF_REMOVE</option>
+              <option>CHANGE_PIN</option>
+            </select>
+          </div>
+          <div><label>Kullanıcı</label><input id="logUserF" placeholder="Filtrele..."></div>
+          <div><label>Başlangıç</label><input type="date" id="logStartF"></div>
+          <div><label>Bitiş</label><input type="date" id="logEndF"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn-gold btn-sm" onclick="loadLogs()">🔍 Getir</button>
+          <button class="btn-dark btn-sm" onclick="clearLogFilters()">↺ Temizle</button>
+          <button class="btn-dark btn-sm" onclick="exportLogs()">⬇ CSV</button>
+        </div>
+      </div>
+      <div id="logSummary" style="display:none" class="panel-card">
+        <div id="logSummaryContent"></div>
+      </div>
+      <div class="panel-card table-wrap">
+        <div id="logCount" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>
+        <table>
+          <thead><tr><th>Tarih</th><th>İşlem</th><th>Kullanıcı</th><th>Detay</th></tr></thead>
+          <tbody id="logBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--text2)">Filtreleyin ve "Getir" e basın.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 5: Araç Raporu -->
+    <div id="tabContent5" style="display:none">
+      <div class="panel-card">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <h3 style="color:var(--gold2);margin:0;flex:1">🚗 Araç Kullanım Raporu</h3>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('today')">Bugün</button>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('week')">Bu Hafta</button>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('month')">Bu Ay</button>
+          <input type="date" id="pRStart" style="width:135px">
+          <span style="color:var(--text2)">—</span>
+          <input type="date" id="pREnd" style="width:135px">
+          <button class="btn-gold btn-sm" onclick="loadPlakaRapor()">Uygula</button>
+        </div>
+        <div id="plakaRaporContent">
+          <div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Ayarlar -->
+    <div id="tabContent4" style="display:none">
+      <div class="panel-card" style="max-width:480px">
+        <h3 style="color:var(--gold2);margin-top:0">🔐 Admin PIN Değiştir</h3>
+        <div style="margin-bottom:12px">
+          <label>Mevcut PIN</label>
+          <input id="oldPin" type="password" placeholder="Mevcut PIN">
+        </div>
+        <div style="margin-bottom:12px">
+          <label>Yeni PIN</label>
+          <input id="newPin" type="password" placeholder="Yeni PIN (en az 4 karakter)">
+        </div>
+        <div style="margin-bottom:16px">
+          <label>Yeni PIN (Tekrar)</label>
+          <input id="newPin2" type="password" placeholder="Yeni PIN tekrar">
+        </div>
+        <button class="btn-gold" onclick="changePin()">PIN'i Değiştir</button>
+        <div id="pinFeedback" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Admin Raporları (1-8) -->
+    <div id="tabContent6" style="display:none">
+      <div class="panel-card">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <h3 style="color:var(--gold2);margin:0;flex:1">📥 Admin Raporları</h3>
+          <button class="btn-dark btn-sm" onclick="setAdminRapor6Range('today')">Bugün</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRapor6Range('week')">Bu Hafta</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRapor6Range('month')">Bu Ay</button>
+          <input type="date" id="r6Start" style="width:135px">
+          <span style="color:var(--text2)">—</span>
+          <input type="date" id="r6End" style="width:135px">
+          <button class="btn-gold btn-sm" onclick="r6ApplyDate()" style="padding:7px 16px">▶ Göster</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+          <div class="r6-row"><span class="r6-num">1</span><span class="r6-ico">📋</span><span class="r6-title">Tüm Rezervasyonlar</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(1)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(1)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">2</span><span class="r6-ico">🏨</span><span class="r6-title">Otel Bazlı Özet</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(2)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(2)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">3</span><span class="r6-ico">👥</span><span class="r6-title">Personel Performansı</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(3)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(3)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">4</span><span class="r6-ico">🚗</span><span class="r6-title">Araç Kullanım</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(4)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(4)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">5</span><span class="r6-ico">🔧</span><span class="r6-title">Plakasız / Atanmamış</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(5)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(5)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">6</span><span class="r6-ico">❌</span><span class="r6-title">İptal Listesi</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(6)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(6)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">7</span><span class="r6-ico">🌍</span><span class="r6-title">Uyruk Dağılımı</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(7)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(7)">⬇ Aktar</button></div>
+          <div class="r6-row"><span class="r6-num">8</span><span class="r6-ico">⏰</span><span class="r6-title">Saatlik Dağılım</span><button class="btn-dark btn-sm r6-show" onclick="adminRaporGoster(8)">▶ Göster</button><button class="btn-gold btn-sm" onclick="adminRaporExport(8)">⬇ Aktar</button></div>
+        </div>
+        <div id="adminRapor6Result" style="margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- TAB 7: Kullanıcılar -->
+    <div id="tabContent7" style="display:none">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">➕ Yeni Kullanıcı</h3>
+        <div class="grid grid4">
+          <div><label>Kullanıcı Adı</label><input id="nUname" placeholder="merkez1"></div>
+          <div><label>Şifre</label><input id="nUpass" placeholder="şifre" type="password"></div>
+          <div><label>Ad Soyad</label><input id="nUname2" placeholder="Ad Soyad"></div>
+          <div>
+            <label>Rol</label>
+            <select id="nUrole">
+              <option value="merkez">🏠 Merkez Operasyon</option>
+              <option value="admin">⚙️ Admin</option>
+              <option value="patron">👔 Patron</option>
+              <option value="boss">👁 İzleme (Boss)</option>
+            </select>
+          </div>
+        </div>
+        <br>
+        <button class="btn-gold" onclick="saveNewUser()">+ Kullanıcı Ekle</button>
+      </div>
+      <div class="panel-card table-wrap">
+        <h3 style="color:var(--gold2);margin-top:0">Kullanıcılar</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text2)">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 8: İÇE AKTAR -->
+    <div id="tabContent8" style="display:none">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">📥 Rezervasyon İçe Aktar (Excel / CSV)</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.8">
+          Excel veya CSV dosyasından rezervasyonları toplu aktarın.<br>
+          <b style="color:var(--gold)">Not:</b> Dosyada <b>ciktiSaati</b> dolu ise → <b>GİRDİ + ÇIKTI</b> otomatik işaretlenir. <b>girdiSaati</b> dolu ise → sadece <b>GİRDİ</b> işaretlenir.
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <input type="file" id="rezImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importRezervasyonlar(event)">
+          <button class="btn-gold" onclick="document.getElementById('rezImportFile').click()">📂 Dosya Seç ve Aktar</button>
+          <a href="/sample-sheets/Reservations.csv" download class="btn-dark btn-sm">⬇ Örnek Dosya İndir</a>
+        </div>
+        <div id="importProgress" style="display:none;padding:12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:8px;font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+        <div id="importResult"></div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- ── Düzenleme Modalı ── -->
+<div id="editModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>✏️ Oteli Düzenle</h3>
+    <input type="hidden" id="editHotelId">
+    <div style="margin-bottom:11px"><label>Otel Adı</label><input id="editHotelName"></div>
+    <div style="margin-bottom:11px"><label>Kullanıcı Kodu</label><input id="editHotelCode"></div>
+    <div style="margin-bottom:11px"><label>Şifre</label><input id="editHotelPass"></div>
+    <div style="margin-bottom:11px"><label>Acenta Kodu</label><input id="editHotelAcenta" placeholder="ACN-001"></div>
+    <div style="margin-bottom:16px">
+      <label>Durum</label>
+      <select id="editHotelStatus">
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-gold" style="flex:1" onclick="saveEditHotel()">💾 Kaydet</button>
+      <button class="btn-dark" onclick="closeModal()">İptal</button>
+    </div>
+  </div>
+</div>
+
+<script src="../config/config.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../config/firebase.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../assets/common.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../assets/firebase-api.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script>
+showApiWarning();
+// ── Kullanıcı Doğrulama ──
+(function(){
+  const u = JSON.parse(sessionStorage.getItem('pianoUser')||'null');
+  if (!u || u.role !== 'admin') {
+    sessionStorage.removeItem('pianoUser');
+    window.location.replace('../giris/index.html');
+  }
+  window._pianoUser = u;
+})();
+function logout(){ sessionStorage.removeItem('pianoUser'); window.location.href='../giris/index.html'; }
+
+let logsCache = [], hotelsData = [], adminRaporData = null, adminPerfData = null;
+
+// ── Giriş (artık pianoUser ile otomatik açılır) ──────────────
+window.addEventListener("load", () => {
+  // pianoUser auth ile gelindi — panel direkt açık
+  openAdmin();
+  const u = window._pianoUser;
+  const lbl = document.getElementById('adminUserLabel');
+  if (lbl && u) lbl.innerText = '👤 ' + (u.name || u.username);
+});
+
+function adminLogin() {} // Geriye dönük uyumluluk
+function adminLogout() { logout(); }
+
+function openAdmin() {
+  pinSection.style.display = "none";
+  adminPanel.style.display = "block";
+  loadHotels();
+}
+
+// ── Tab ────────────────────────────────────────────────────────
+function openTab(n) {
+  [1,2,3,4,5,6,7].forEach(i => {
+    document.getElementById("tabContent"+i).style.display = i===n?"block":"none";
+    document.getElementById("tab"+i).classList.toggle("active", i===n);
+  });
+  if (n===2) loadAdminRapor();
+}
+
+function setAdminRapor6Range(range) {
+  const t = todayStr();
+  if (range==="today") { document.getElementById("r6Start").value=t; document.getElementById("r6End").value=t; }
+  else if (range==="week")  { document.getElementById("r6Start").value=weekStart(t); document.getElementById("r6End").value=t; }
+  else if (range==="month") { document.getElementById("r6Start").value=monthStart(t); document.getElementById("r6End").value=t; }
+  // Aktif rapor varsa yenile
+  if (_r6CurrentNum) adminRaporGoster(_r6CurrentNum);
+}
+
+function r6ApplyDate() {
+  if (_r6CurrentNum) {
+    adminRaporGoster(_r6CurrentNum);
+  } else {
+    showToast("Önce bir rapor seçin", "err");
+  }
+}
+
+async function adminExport(num) {
+  const s = document.getElementById("r6Start")?.value || todayStr();
+  const e = document.getElementById("r6End")?.value   || todayStr();
+  const el = document.getElementById("adminRapor6Result");
+  el.innerHTML = '<div style="color:var(--text2);text-align:center;padding:16px">Yükleniyor...</div>';
+
+  const all = await getReservations();
+  const filtered = all.filter(r => (!s||r.date>=s)&&(!e||r.date<=e));
+  let wb, ws, rows, headers, filename;
+  const thin = { style:"thin", color:{rgb:"888888"} };
+  const border = { top:thin,bottom:thin,left:thin,right:thin };
+
+  function applyBorder(ws, data) {
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    ws["!rows"] = Array.from({length:range.e.r+1},()=>({hpx:28}));
+    for (let R=range.s.r;R<=range.e.r;R++) for (let C=range.s.c;C<=range.e.c;C++) {
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      if (!ws[addr]) ws[addr]={v:"",t:"s"};
+      ws[addr].s = ws[addr].s||{};
+      ws[addr].s.border = border;
+      if (R===0) ws[addr].s.font = {bold:true};
+    }
+  }
+
+  if (num === 1) {
+    // Tüm rezervasyonlar
+    headers = ["Tarih","Otel","Saat","Yetişkin","Çocuk","Uyruk","Kart","Plaka","Personel","Durum","Not"];
+    rows = filtered.map(r=>[fmtDateDot(r.date),r.hotel||"",r.time||"",Number(r.adult)||0,Number(r.child)||0,r.nation||"",r.kart||"",r.ayak||"",
+      [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).join(", "),r.status||"",r.notes||""]);
+    ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:12},{wch:28},{wch:8},{wch:8},{wch:8},{wch:10},{wch:12},{wch:12},{wch:30},{wch:12},{wch:20}];
+    filename=`rapor1-tum-rezervasyon-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 2) {
+    // Otel bazlı özet
+    const byHotel={};
+    filtered.forEach(r=>{
+      const h=r.hotel||""; if(!byHotel[h]) byHotel[h]={count:0,pax:0};
+      byHotel[h].count++; byHotel[h].pax+=(Number(r.adult)||0)+(Number(r.child)||0);
+    });
+    headers=["Otel","Rezervasyon","Toplam PAX"];
+    rows=Object.entries(byHotel).sort((a,b)=>b[1].count-a[1].count).map(([h,v])=>[h,v.count,v.pax]);
+    rows.push(["TOPLAM",rows.reduce((s,r)=>s+r[1],0),rows.reduce((s,r)=>s+r[2],0)]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:32},{wch:14},{wch:14}];
+    filename=`rapor2-otel-ozet-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 3) {
+    // Personel performans
+    const perf={};
+    filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{
+      const pax=(Number(r.adult)||0)+(Number(r.child)||0);
+      [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n=>{
+        if(!perf[n]) perf[n]={count:0,pax:0}; perf[n].count++; perf[n].pax+=pax;
+      });
+    });
+    headers=["Personel","Program Sayısı","Toplam PAX"];
+    rows=Object.entries(perf).sort((a,b)=>b[1].count-a[1].count).map(([n,v])=>[n,v.count,v.pax]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:24},{wch:16},{wch:14}];
+    filename=`rapor3-personel-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 4) {
+    // Araç kullanım
+    const arac={};
+    filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{
+      const p=String(r.ayak||"").trim(); if(!p) return;
+      if(!arac[p]) arac[p]={count:0,dates:[],hotels:[]};
+      arac[p].count++;
+      if(!arac[p].dates.includes(r.date)) arac[p].dates.push(r.date);
+      if(!arac[p].hotels.includes(r.hotel)) arac[p].hotels.push(r.hotel);
+    });
+    headers=["Plaka","Sefer","Gün","Oteller"];
+    rows=Object.entries(arac).sort((a,b)=>b[1].count-a[1].count).map(([p,v])=>[p,v.count,v.dates.length,v.hotels.join(", ")]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wpx:110},{wch:8},{wch:8},{wch:40}];
+    filename=`rapor4-arac-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 5) {
+    // Plakasız / atanmamış
+    const plakasiz=filtered.filter(r=>r.status!=="CANCELLED"&&!String(r.ayak||"").trim());
+    headers=["OTEL ADI","SAAT","PAX","PLAKA"];
+    rows=plakasiz.sort((a,b)=>String(a.time||"").localeCompare(String(b.time||""))||String(a.hotel||"").localeCompare(String(b.hotel||""))).map(r=>[r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),""]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    const maxH=Math.max(...plakasiz.map(r=>(r.hotel||"").length),8);
+    ws["!cols"]=[{wch:maxH+2},{wch:8},{wch:6},{wpx:110}];
+    ws["!rows"]=Array.from({length:rows.length+1},()=>({hpx:35}));
+    applyBorder(ws);
+    filename=`rapor5-plakasiz-${s}-${e}.xlsx`;
+  } else if (num === 6) {
+    // İptal listesi
+    const iptaller=all.filter(r=>r.status==="CANCELLED"&&(!s||r.date>=s)&&(!e||r.date<=e));
+    headers=["Tarih","Otel","Saat","Pax","Uyruk","İptal Tarihi"];
+    rows=iptaller.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).map(r=>[fmtDateDot(r.date),r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),r.nation||"",String(r.updatedAt||"").slice(0,10)]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:12},{wch:28},{wch:8},{wch:6},{wch:10},{wch:12}];
+    filename=`rapor6-iptal-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 7) {
+    // Uyruk dağılımı
+    const byN={};
+    filtered.forEach(r=>{ const n=r.nation||"Diğer"; byN[n]=(byN[n]||0)+1; });
+    headers=["Uyruk","Rezervasyon Sayısı","Yüzde"];
+    const total=filtered.length||1;
+    rows=Object.entries(byN).sort((a,b)=>b[1]-a[1]).map(([n,v])=>[n,v,((v/total)*100).toFixed(1)+"%"]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:16},{wch:18},{wch:10}];
+    filename=`rapor7-uyruk-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  } else if (num === 8) {
+    // Saatlik dağılım
+    const byHr={};
+    filtered.forEach(r=>{ const h=String(r.time||"??").slice(0,5); byHr[h]=(byHr[h]||0)+1; });
+    headers=["Saat","Rezervasyon Sayısı"];
+    rows=Object.entries(byHr).sort((a,b)=>a[0].localeCompare(b[0])).map(([h,v])=>[h,v]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws["!cols"]=[{wch:10},{wch:18}];
+    filename=`rapor8-saat-${s}-${e}.xlsx`;
+    applyBorder(ws);
+  }
+
+  wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Rapor"+num);
+  XLSX.writeFile(wb,filename);
+  el.innerHTML=`<div style="color:#4ade80;padding:12px;background:rgba(34,197,94,.1);border-radius:8px;border:1px solid rgba(34,197,94,.3)">
+    ✅ <b>Rapor ${num}</b> indirildi — ${rows.length} kayıt
+  </div>`;
+  showToast(`✅ Rapor ${num} indirildi`);
+}
+
+// ── Oteller ────────────────────────────────────────────────────
+// ── Firebase yardımcı hesaplama fonksiyonları ──────────────────
+async function calcStatsFromFirebase(startDate, endDate) {
+  const all = await getReservations();
+  const filtered = all.filter(r => (!startDate || r.date >= startDate) && (!endDate || r.date <= endDate));
+  let totalRes=0, totalPax=0;
+  const byStatus={}, byNation={}, byHotel={}, byDay={}, byHour={};
+  filtered.forEach(r => {
+    totalRes++; totalPax += (Number(r.adult)||0)+(Number(r.child)||0);
+    const st = r.status||"PENDING";
+    const hour = String(r.time||"").slice(0,2)||"??";
+    byStatus[st]   = (byStatus[st]||0)+1;
+    byNation[r.nation||"Diger"] = (byNation[r.nation||"Diger"]||0)+1;
+    byHotel[r.hotel||""]  = (byHotel[r.hotel||""]||0)+1;
+    byDay[r.date||""]     = (byDay[r.date||""]||0)+1;
+    byHour[hour]          = (byHour[hour]||0)+1;
+  });
+  return { success:true, totalRes, totalPax, byStatus, byNation, byHotel, byDay, byHour };
+}
+
+async function calcPerfFromFirebase(startDate, endDate) {
+  const all = await getReservations();
+  const filtered = all.filter(r => (!startDate||r.date>=startDate)&&(!endDate||r.date<=endDate)&&r.status!=="CANCELLED");
+  const perf = {};
+  filtered.forEach(r => {
+    const pax=(Number(r.adult)||0)+(Number(r.child)||0);
+    const isSale = String(r.satis||"").toUpperCase() === "TRUE";
+    [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n => {
+      if(!perf[n]) perf[n]={count:0,pax:0,satis:0,bos:0};
+      perf[n].count++; perf[n].pax+=pax;
+      if(isSale) perf[n].satis++; else perf[n].bos++;
+    });
+  });
+  return Object.entries(perf).map(([name,v])=>({name,count:v.count,pax:v.pax,satis:v.satis,bos:v.bos})).sort((a,b)=>b.count-a.count);
+}
+
+async function calcPlakaFromFirebase(startDate, endDate) {
+  const all = await getReservations();
+  const stats = {};
+  all.filter(r => r.status!=="CANCELLED"&&(!startDate||r.date>=startDate)&&(!endDate||r.date<=endDate)).forEach(r => {
+    const plaka = String(r.ayak||"").trim();
+    if(!plaka) return;
+    if(!stats[plaka]) stats[plaka]={count:0,dates:[],hotels:{}};
+    stats[plaka].count++;
+    if(!stats[plaka].dates.includes(r.date)) stats[plaka].dates.push(r.date);
+    stats[plaka].hotels[r.hotel]=(stats[plaka].hotels[r.hotel]||0)+1;
+  });
+  return Object.entries(stats).map(([plaka,v])=>{
+    const sorted=v.dates.sort();
+    return{plaka,count:v.count,gunSayisi:v.dates.length,ilkKullanim:sorted[0]||"",sonKullanim:sorted[sorted.length-1]||"",oteller:v.hotels};
+  }).sort((a,b)=>b.count-a.count);
+}
+
+async function loadHotels() {
+  hotelsData = await getHotels();
+  renderHotels();
+  fillAdminReportFilters();
+}
+
+async function fillAdminReportFilters() {
+  try {
+    if (document.getElementById("aRHotel")) {
+      const hotelNames = [...new Set((hotelsData||[]).map(h=>h.hotel).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+      aRHotel.innerHTML = '<option value="">Oteller: Tümü</option>' + hotelNames.map(h=>`<option value="${h}">${h}</option>`).join("");
+    }
+    if (document.getElementById("aRPersonel")) {
+      const st = await getStaff();
+      const names = [...new Set((st||[]).map(x=>x.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+      aRPersonel.innerHTML = '<option value="">Personel: Tümü</option>' + names.map(n=>`<option value="${n}">${n}</option>`).join("");
+    }
+    if (document.getElementById("aRPlaka")) {
+      const ps = await getPlakalar();
+      const names = [...new Set((ps||[]).map(x=>x.plaka).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"tr"));
+      aRPlaka.innerHTML = '<option value="">Plaka: Tümü</option>' + names.map(n=>`<option value="${n}">${n}</option>`).join("");
+    }
+  } catch(e) {}
+}
+
+function renderHotels() {
+  hotelTableBody.innerHTML = hotelsData.length
+    ? hotelsData.map(x => `
+        <tr>
+          <td><b>${x.hotel}</b></td>
+          <td><code style="color:var(--gold)">${x.code}</code></td>
+          <td style="color:var(--text2)">${x.password}</td>
+          <td style="color:var(--gold2)">${x.acentaCode||"—"}</td>
+          <td><span class="badge ${x.status==="ACTIVE"?"exited":"cancelled"}">${x.status}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="btn-blue btn-sm" onclick="openEditModal(${JSON.stringify(x).replace(/"/g,'&quot;')})">✏️ Düzelt</button>
+              <button class="btn-red  btn-sm" onclick="deleteHotelUI('${x.id || x._key}','${String(x.hotel||'').replace(/'/g,"\\'")}')">🗑 Sil</button>
+            </div>
+          </td>
+        </tr>`)
+      .join("")
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text2)">Otel yok.</td></tr>';
+}
+
+async function saveHotel() {
+  const name   = nHotelName.value.trim();
+  const code   = nHotelCode.value.trim();
+  const pass   = nHotelPass.value.trim();
+  const acenta = nHotelAcenta.value.trim();
+  if (!name||!code||!pass) return showToast("Ad, kod ve şifre zorunlu","err");
+  await addHotel({ hotel:name, code, password:pass, acentaCode:acenta, status:"ACTIVE" });
+  showToast("✅ Otel eklendi: "+name);
+  nHotelName.value=""; nHotelCode.value=""; nHotelPass.value=""; nHotelAcenta.value="";
+  loadHotels();
+}
+
+function openEditModal(h) {
+  editHotelId.value     = h.id;
+  editHotelName.value   = h.hotel;
+  editHotelCode.value   = h.code;
+  editHotelPass.value   = h.password;
+  editHotelAcenta.value = h.acentaCode||"";
+  editHotelStatus.value = h.status||"ACTIVE";
+  editModal.style.display = "flex";
+}
+
+function closeModal() { editModal.style.display = "none"; }
+
+async function saveEditHotel() {
+  const id     = editHotelId.value;
+  const name   = editHotelName.value.trim();
+  const code   = editHotelCode.value.trim();
+  const pass   = editHotelPass.value.trim();
+  const acenta = editHotelAcenta.value.trim();
+  const status = editHotelStatus.value;
+  if (!name||!code||!pass) return showToast("Ad, kod ve şifre zorunlu","err");
+  await updateHotel(id, { hotel:name, code, password:pass, acentaCode:acenta, status });
+  showToast("✅ Otel güncellendi"); closeModal(); loadHotels();
+}
+
+async function deleteHotelUI(id, name) {
+  if (!id || id === "undefined") return showToast("❌ Otel ID bulunamadı. Sayfayı yenileyip tekrar deneyin.", "err");
+  if (!confirm(`"${name}" oteli kalıcı olarak silinsin mi?`)) return;
+  await window.deleteHotel(id);
+  showToast("Otel silindi");
+  await loadHotels();
+}
+
+function rowVal(row, names) {
+  for (const n of names) {
+    if (row[n] !== undefined && row[n] !== null && String(row[n]).trim() !== "") return String(row[n]).trim();
+  }
+  return "";
+}
+
+async function importRezervasyonlar(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined") return showToast("Excel okuyucu yüklenemedi", "err");
+
+  const progress = document.getElementById("importProgress");
+  const result   = document.getElementById("importResult");
+  progress.style.display = "block";
+  progress.textContent   = "Dosya okunuyor...";
+  result.innerHTML = "";
+
+  const buf  = await file.arrayBuffer();
+  const wb   = XLSX.read(buf, { type:"array" });
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:"" });
+  if (!rows.length) { progress.textContent = "Dosya boş!"; return; }
+
+  const user = JSON.parse(sessionStorage.getItem("pianoUser") || "{}");
+  let added = 0, skipped = 0, errors = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    progress.textContent = `İşleniyor: ${i+1} / ${rows.length}`;
+
+    const date  = rowVal(row, ["date","Tarih","TARİH","DATE"]);
+    const time  = rowVal(row, ["time","Saat","SAAT","TIME"]);
+    const hotel = rowVal(row, ["hotel","Otel","OTEL","Hotel Adı","OTEL ADI"]);
+    if (!date || !time || !hotel) { skipped++; continue; }
+
+    // Saat & çıkış saati
+    const girdiSaati  = rowVal(row, ["girdiSaati","Giriş Saati","GİRİŞ SAATİ","giris_saati"]) || "";
+    const ciktiSaati  = rowVal(row, ["ciktiSaati","Çıkış Saati","ÇIKIŞ SAATİ","cikis_saati"]) || "";
+
+    // ── GİRDİ / ÇIKTI OTOMATİK İŞARETLE ──
+    const girdi = !!(girdiSaati || ciktiSaati);  // girdi saati VEYA çıkış saati varsa girdi=true
+    const cikti = !!ciktiSaati;                   // sadece çıkış saati varsa cikti=true
+
+    // Satış / Boş
+    const satisRaw = String(rowVal(row, ["satis","Satış","SATIŞ","satis"])).toUpperCase();
+    const satis    = satisRaw === "TRUE" || satisRaw === "SATIŞ" || satisRaw === "EVET" || satisRaw === "1";
+
+    const rez = {
+      date,
+      time,
+      hotel,
+      adult:      Number(rowVal(row, ["adult","Yetişkin","YETİŞKİN","yetiskin"])) || 0,
+      child:      Number(rowVal(row, ["child","Çocuk","ÇOCUK","cocuk"]))   || 0,
+      nation:     rowVal(row, ["nation","nat","Uyruk","UYRUK","nation"]) || "",
+      kart:       rowVal(row, ["kart","kartno","Kart No","KART NO"])     || "",
+      ayak:       rowVal(row, ["ayak","plaka","Plaka","PLAKA"])          || "",
+      notes:      rowVal(row, ["notes","not","Not","NOT"])               || "",
+      staff1:     rowVal(row, ["staff1","T1","Tezgahtar 1"])             || "",
+      staff2:     rowVal(row, ["staff2","T2","Tezgahtar 2"])             || "",
+      staff3:     rowVal(row, ["staff3","T3","Tezgahtar 3"])             || "",
+      staff4:     rowVal(row, ["staff4","T4","Tezgahtar 4"])             || "",
+      girdi,
+      cikti,
+      girdiSaati,
+      ciktiSaati,
+      satis,
+      status:     cikti ? "COMPLETED" : "PENDING",
+      _importedAt: new Date().toISOString(),
+      _importedBy: user.username || "admin",
+    };
+
+    try {
+      await addReservation(rez);
+      added++;
+    } catch(e) {
+      errors.push(`Satır ${i+2}: ${e.message}`);
+    }
+  }
+
+  progress.textContent = `✅ Tamamlandı: ${added} eklendi, ${skipped} atlandı${errors.length ? `, ${errors.length} hata` : ""}.`;
+
+  // Sonuç özeti
+  result.innerHTML = `
+    <div style="margin-top:12px;padding:14px;background:rgba(53,217,121,.08);border:1px solid rgba(53,217,121,.2);border-radius:8px">
+      <div style="font-size:14px;font-weight:700;color:#35d979;margin-bottom:8px">✅ İçe Aktarma Tamamlandı</div>
+      <div style="font-size:13px;color:var(--text2);line-height:2">
+        📋 Toplam satır: <b style="color:var(--text)">${rows.length}</b><br>
+        ✅ Eklenen: <b style="color:#35d979">${added}</b><br>
+        ⏭ Atlanan (eksik alan): <b style="color:var(--warn)">${skipped}</b><br>
+        🔑 Girdi/Çıktı otomatik işaretlendi: <b style="color:var(--gold)">${rows.filter(r => rowVal(r,["ciktiSaati","Çıkış Saati","ÇIKIŞ SAATİ","cikis_saati"])).length} kayıt</b>
+      </div>
+    </div>`;
+
+  if (added > 0) showToast(`✅ ${added} rezervasyon aktarıldı — Girdi/Çıktı otomatik işaretlendi`);
+}
+
+async function importHotelsExcel(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined") return showToast("Excel okuyucu yüklenemedi", "err");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type:"array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:"" });
+  if (!rows.length) return showToast("Excel boş", "err");
+  let added = 0, skipped = 0;
+  for (const row of rows) {
+    const hotel = rowVal(row, ["Otel Adı","OTEL ADI","otel","hotel"]);
+    const code = rowVal(row, ["Kullanıcı Kodu","KULLANICI KODU","Kullanici Kodu","code"]);
+    const password = rowVal(row, ["Şifre","SIFRE","ŞİFRE","Sifre","password"]);
+    const acentaCode = rowVal(row, ["Acenta Kodu","ACENTA KODU","acentaCode"]);
+    const status = rowVal(row, ["Durum","DURUM","status"]) || "ACTIVE";
+    if (!hotel || !code || !password) { skipped++; continue; }
+    await addHotel({ hotel, code, password, acentaCode, status: status.toUpperCase() });
+    added++;
+  }
+  showToast(`✅ ${added} otel aktarıldı${skipped ? `, ${skipped} satır atlandı` : ""}`);
+  await loadHotels();
+}
+
+function downloadHotelTemplate() {
+  const headers = ["Otel Adı","Kullanıcı Kodu","Şifre","Acenta Kodu","Durum"];
+  const rows = [["Lara Hotel","PD001","1234","ACN-001","ACTIVE"]];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Oteller");
+  XLSX.writeFile(wb, "otel-aktarim-sablonu.xlsx");
+}
+
+editModal.addEventListener("click", e => { if (e.target===editModal) closeModal(); });
+
+// ── Admin Raporlar ─────────────────────────────────────────────
+function setAdminRange(range) {
+  const t = todayStr();
+  if (range==="today") { aRStart.value=t; aREnd.value=t; }
+  else if (range==="week")  { aRStart.value=weekStart(t); aREnd.value=t; }
+  else if (range==="month") { aRStart.value=monthStart(t); aREnd.value=t; }
+  loadAdminRapor();
+}
+
+async function loadAdminRapor() {
+  const s = aRStart.value || todayStr();
+  const e = aREnd.value   || todayStr();
+  adminRaporContent.innerHTML='<div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>';
+  [adminRaporData, adminPerfData] = await Promise.all([
+    calcStatsFromFirebase(s, e),
+    calcPerfFromFirebase(s, e)
+  ]);
+  if (!adminRaporData?.success) { adminRaporContent.innerHTML='<div class="notice">Veri alınamadı.</div>'; return; }
+  renderAdminRapor(s, e);
+  await renderAdminDetailedReport(s, e);
+}
+
+async function renderAdminDetailedReport(s, e) {
+  const hotelF = document.getElementById("aRHotel")?.value || "";
+  const personelF = document.getElementById("aRPersonel")?.value || "";
+  const plakaF = document.getElementById("aRPlaka")?.value || "";
+  let rows = await getReservations();
+  rows = rows.filter(r => r.status !== "CANCELLED" && (!s || r.date >= s) && (!e || r.date <= e));
+  if (hotelF) rows = rows.filter(r => r.hotel === hotelF);
+  if (personelF) rows = rows.filter(r => [r.staff1,r.staff2,r.staff3,r.staff4].includes(personelF));
+  if (plakaF) rows = rows.filter(r => String(r.ayak || r.plaka || "") === plakaF);
+  rows.sort((a,b)=>String(a.hotel||"").localeCompare(String(b.hotel||""),"tr") || String(a.date||"").localeCompare(String(b.date||"")) || String(a.time||"").localeCompare(String(b.time||"")));
+  const html = `<div class="panel-card table-wrap" style="margin-top:12px"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Araç / Otel / Personel / Plaka Detay Raporu</div><table><thead><tr><th>Tarih</th><th>Otel</th><th>Saat</th><th>Pax</th><th>Plaka</th><th>Personel</th><th>Satış</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.hotel||""}</td><td><b>${r.time||""}</b></td><td>${(Number(r.adult)||0)+(Number(r.child)||0)}</td><td>${r.ayak||r.plaka||""}</td><td>${[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).join(", ")}</td><td>${String(r.satis).toUpperCase()==="TRUE"?"SATIŞ":"Boş"}</td></tr>`).join("") || '<tr><td colspan="7" style="text-align:center;color:var(--text2)">Kayıt yok.</td></tr>'}</tbody></table></div>`;
+  adminRaporContent.insertAdjacentHTML("beforeend", html);
+}
+
+function bar(label, val, max, cls="") {
+  const pct = max > 0 ? Math.round(val/max*100) : 0;
+  return `<div class="bar-row">
+    <span class="bar-label">${label}</span>
+    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <span class="bar-value">${val}</span>
+  </div>`;
+}
+
+function renderAdminRapor(s, e) {
+  const d = adminRaporData;
+  const nEnt = Object.entries(d.byNation||{}).sort((a,b)=>b[1]-a[1]);
+  const hEnt = Object.entries(d.byHotel||{}).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const dEnt = Object.entries(d.byDay  ||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const sEnt = Object.entries(d.byStatus||{}).sort((a,b)=>b[1]-a[1]);
+  const mxN  = Math.max(...nEnt.map(x=>x[1]),1);
+  const mxH  = Math.max(...hEnt.map(x=>x[1]),1);
+  const mxD  = Math.max(...dEnt.map(x=>x[1]),1);
+  const mxP  = adminPerfData?.length ? adminPerfData[0].count : 1;
+  const mxHr = Math.max(...Object.values(d.byHour||{1:1}),1);
+
+  // Acenta kodu haritası
+  const acentaMap = {};
+  hotelsData.forEach(h => { acentaMap[h.hotel] = h.acentaCode || ""; });
+
+  adminRaporContent.innerHTML = `
+    <div class="stat-cards">
+      <div class="stat-card"><div class="s-val">${d.totalRes}</div><div class="s-lbl">Rezervasyon</div></div>
+      <div class="stat-card"><div class="s-val">${d.totalPax}</div><div class="s-lbl">Toplam PAX</div></div>
+      <div class="stat-card"><div class="s-val">${Object.keys(d.byHotel||{}).length}</div><div class="s-lbl">Aktif Otel</div></div>
+      <div class="stat-card"><div class="s-val">${adminPerfData?.length||0}</div><div class="s-lbl">Personel</div></div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Durum Dağılımı</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        ${sEnt.map(([st,n])=>`<span class="badge pending" style="font-size:12px">${statusLabel(st)}: ${n}</span>`).join("")}
+      </div>
+    </div>
+
+    <div class="grid grid3" style="gap:12px;margin-bottom:12px">
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🌍 Uyruk</div>
+        <div class="bar-chart">${nEnt.map(([l,v])=>bar(l,v,mxN)).join("")}</div>
+      </div>
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏨 Otel Yoğunluğu</div>
+        <div class="bar-chart">
+          ${hEnt.map(([l,v])=>bar(l,v,mxH,"blue")).join("")}
+        </div>
+      </div>
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⏰ Saat</div>
+        <div class="bar-chart">
+          ${Object.entries(d.byHour||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([l,v])=>bar(l+":xx",v,mxHr,"green")).join("")}
+        </div>
+      </div>
+    </div>
+
+    ${dEnt.length > 1 ? `
+    <div class="panel-card" style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📅 Günlük Trend</div>
+      <div class="bar-chart">${dEnt.map(([l,v])=>bar(l.slice(5),v,mxD,"blue")).join("")}</div>
+    </div>` : ""}
+
+    ${adminPerfData?.length ? `
+    <div class="panel-card">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏆 Personel Performansı</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:7px 6px;text-align:left;color:var(--text2)">#</th>
+            <th style="padding:7px 6px;text-align:left;color:var(--text2)">TEZGAHTAR ADI</th>
+            <th style="padding:7px 6px;text-align:center;color:var(--gold2)">TOPLAM REZ.</th>
+            <th style="padding:7px 6px;text-align:center;color:#4ade80">SATIŞ</th>
+            <th style="padding:7px 6px;text-align:center;color:#f87171">BOŞ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${adminPerfData.map((p,i)=>`
+            <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+              <td style="padding:8px 6px;color:var(--text2)">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</td>
+              <td style="padding:8px 6px;font-weight:700">${p.name}</td>
+              <td style="padding:8px 6px;text-align:center;font-weight:900;color:var(--gold2)">${p.count}</td>
+              <td style="padding:8px 6px;text-align:center;font-weight:700;color:#4ade80">${p.satis||0}</td>
+              <td style="padding:8px 6px;text-align:center;font-weight:700;color:#f87171">${p.bos||0}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>` : ""}`;
+}
+
+// ── Loglar ─────────────────────────────────────────────────────
+async function loadLogs() {
+  const params = { limit: 500 };
+  if (logActionF.value) params.action_filter = logActionF.value;
+  if (logUserF.value)   params.user_filter   = logUserF.value;
+  if (logStartF.value)  params.startDate     = logStartF.value;
+  if (logEndF.value)    params.endDate       = logEndF.value;
+  const logsRaw = await fbGet("logs");
+  logsCache = logsRaw ? Object.values(logsRaw).reverse().slice(0,200) : [];
+  renderLogs(); renderLogSummary();
+}
+
+function actionClass(a) {
+  if (!a) return "pending";
+  if (a.includes("DELETE")||a.includes("CANCEL")) return "cancelled";
+  if (a.includes("LOGIN"))  return "exited";
+  if (a.includes("ADD"))    return "updated";
+  if (a.includes("OFF"))    return "off";
+  return "pending";
+}
+
+function renderLogs() {
+  logCount.innerText = logsCache.length + " kayıt";
+  logBody.innerHTML = logsCache.length
+    ? logsCache.map(l=>`
+        <tr>
+          <td style="font-size:11px;color:var(--text2)">${String(l.date).slice(0,19)}</td>
+          <td><span class="badge ${actionClass(l.action)}">${l.action}</span></td>
+          <td>${l.user||""}</td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${l.details||""}</td>
+        </tr>`).join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text2)">Sonuç yok.</td></tr>';
+}
+
+function renderLogSummary() {
+  if (!logsCache.length) { logSummary.style.display="none"; return; }
+  const counts={};
+  logsCache.forEach(l=>{counts[l.action]=(counts[l.action]||0)+1;});
+  logSummaryContent.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:7px">
+    ${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([a,n])=>`<span class="badge ${actionClass(a)}">${a}: ${n}</span>`).join("")}
+  </div>`;
+  logSummary.style.display="block";
+}
+
+function clearLogFilters() {
+  logActionF.value=""; logUserF.value=""; logStartF.value=""; logEndF.value="";
+  logsCache=[];
+  logBody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text2)">Filtreleyin.</td></tr>';
+  logCount.innerText=""; logSummary.style.display="none";
+}
+
+function exportLogs() {
+  if (!logsCache.length) return showToast("Önce logları getirin","err");
+  const headers="Tarih,İşlem,Kullanıcı,Detay";
+  const rows=logsCache.map(l=>`"${String(l.date).slice(0,19)}","${l.action||""}","${l.user||""}","${String(l.details||"").replace(/"/g,'""')}"`);
+  exportCSV(headers, rows, `piano-log-${todayStr()}.csv`);
+}
+
+// ── Araç Raporu ───────────────────────────────────────────────
+let pStart = "", pEnd = "";
+
+function setPlakaRange(range) {
+  const t = todayStr();
+  if (range==="today") { pStart=t; pEnd=t; }
+  else if (range==="week")  { pStart=weekStart(t); pEnd=t; }
+  else if (range==="month") { pStart=monthStart(t); pEnd=t; }
+  document.getElementById("pRStart").value = pStart;
+  document.getElementById("pREnd").value   = pEnd;
+  loadPlakaRapor();
+}
+
+async function loadPlakaRapor() {
+  const s = document.getElementById("pRStart")?.value || todayStr();
+  const e = document.getElementById("pREnd")?.value   || todayStr();
+  pStart=s; pEnd=e;
+  document.getElementById("plakaRaporContent").innerHTML =
+    '<div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>';
+
+  const data = await calcPlakaFromFirebase(s, e);
+  renderPlakaRapor(data, s, e);
+}
+
+function renderPlakaRapor(data, s, e) {
+  const el = document.getElementById("plakaRaporContent");
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="color:var(--text2);text-align:center;padding:24px">Bu dönemde araç kullanımı yok.</div>';
+    return;
+  }
+
+  const maxCount = data[0].count || 1;
+
+  el.innerHTML = `
+    <div class="stat-cards" style="margin-bottom:14px">
+      <div class="stat-card"><div class="s-val">${data.length}</div><div class="s-lbl">Aktif Araç</div></div>
+      <div class="stat-card"><div class="s-val">${data.reduce((s,x)=>s+x.count,0)}</div><div class="s-lbl">Toplam Sefer</div></div>
+      <div class="stat-card"><div class="s-val" style="font-size:16px">${data[0]?.plaka||"—"}</div><div class="s-lbl">En Çok Kullanan</div></div>
+      <div class="stat-card"><div class="s-val">${data[0]?.gunSayisi||0}</div><div class="s-lbl">Gün (En Aktif)</div></div>
+    </div>
+
+    <div class="panel-card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Plaka</th><th>Sefer</th><th>Gün</th>
+            <th>İlk Kullanım</th><th>Son Kullanım</th><th>Yoğunluk</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map((p,i) => `
+            <tr>
+              <td style="color:var(--text2)">${i+1}</td>
+              <td><b style="color:var(--gold2)">${p.plaka}</b></td>
+              <td><b>${p.count}</b></td>
+              <td>${p.gunSayisi}</td>
+              <td style="color:var(--text2);font-size:11px">${fmtDate(p.ilkKullanim)||"—"}</td>
+              <td style="color:var(--text2);font-size:11px">${fmtDate(p.sonKullanim)||"—"}</td>
+              <td style="min-width:100px">
+                <div style="background:rgba(255,255,255,.05);border-radius:4px;height:18px;overflow:hidden">
+                  <div style="height:100%;background:linear-gradient(90deg,#a07830,#f1d48a);width:${Math.round(p.count/maxCount*100)}%;border-radius:4px"></div>
+                </div>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Ayarlar: PIN Değiştir ──────────────────────────────────────
+async function changePin() {
+  const old = oldPin.value.trim();
+  const n1  = newPin.value.trim();
+  const n2  = newPin2.value.trim();
+  if (!old||!n1||!n2) { pinFeedback.innerHTML='<div class="notice">Tüm alanları doldurun.</div>'; return; }
+  if (n1 !== n2)       { pinFeedback.innerHTML='<div class="notice">Yeni PIN\'ler eşleşmiyor.</div>'; return; }
+  if (n1.length < 4)   { pinFeedback.innerHTML='<div class="notice">PIN en az 4 karakter olmalı.</div>'; return; }
+  const currentPin = await getPin();
+  if (String(old) !== String(currentPin)) {
+    showToast("❌ Mevcut PIN hatalı","err"); return;
+  }
+  await setPin(n1);
+  const r = { success: true };
+  if (r.success) {
+    pinFeedback.innerHTML='<div class="ok">✅ PIN başarıyla değiştirildi. Bir sonraki girişte yeni PIN kullanın.</div>';
+    oldPin.value=""; newPin.value=""; newPin2.value="";
+    setTimeout(() => { sessionStorage.removeItem("adminAuth"); localStorage.removeItem("adminRemPin"); adminLogout(); }, 2000);
+  } else {
+    pinFeedback.innerHTML=`<div class="notice">❌ ${r.message||"Hata"}</div>`;
+  }
+}
+
+// ── Admin Raporları 1-8 ───────────────────────────────────────
+let _r6CurrentNum = 0, _r6Data = null;
+
+async function _r6GetData() {
+  const s = document.getElementById("r6Start")?.value || todayStr();
+  const e = document.getElementById("r6End")?.value   || todayStr();
+  const all = await getReservations();
+  return { all, filtered: all.filter(r => (!s||r.date>=s)&&(!e||r.date<=e)), s, e };
+}
+
+function _r6Table(headers, rows, colorCols) {
+  const thRow = headers.map(h=>`<th style="padding:8px 8px;text-align:left;background:var(--bg2);color:var(--gold2);font-size:11px;white-space:nowrap">${h}</th>`).join("");
+  const tdRows = rows.map(r=>`<tr>${r.map((c,i)=>`<td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;${colorCols&&colorCols[i]||""}">${c??""}</td>`).join("")}</tr>`).join("");
+  return `<div class="table-wrap"><table style="width:100%;border-collapse:collapse"><thead><tr>${thRow}</tr></thead><tbody>${tdRows||'<tr><td colspan="${headers.length}" style="color:var(--text2);text-align:center;padding:14px">Kayıt yok.</td></tr>'}</tbody></table></div>`;
+}
+
+async function adminRaporGoster(num) {
+  const el = document.getElementById("adminRapor6Result");
+  // Toggle: aynı rapor tekrar seçilirse kapat
+  if (_r6CurrentNum === num) { _r6CurrentNum=0; el.innerHTML=""; return; }
+  _r6CurrentNum = num;
+  el.innerHTML = '<div style="color:var(--text2);text-align:center;padding:14px">Yükleniyor...</div>';
+  const {all, filtered, s, e} = await _r6GetData();
+  let title, html;
+
+  if (num===1) {
+    title="Tüm Rezervasyonlar";
+    const rows=filtered.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))||String(a.hotel||"").localeCompare(String(b.hotel||""))).map(r=>[fmtDate(r.date),r.hotel||"",(r.time||""),(Number(r.adult)||0)+(Number(r.child)||0),r.nation||"",[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).join(", "),r.ayak||"",String(r.satis||"").toUpperCase()==="TRUE"?"✅ SATIŞ":"—",r.status||""]);
+    html=_r6Table(["Tarih","Otel","Saat","Pax","Uyruk","Personel","Plaka","Satış","Durum"],rows);
+  } else if (num===2) {
+    title="Otel Bazlı Özet";
+    const byH={};
+    filtered.forEach(r=>{const h=r.hotel||"İsimsiz";if(!byH[h])byH[h]={rez:0,pax:0,satis:0,bos:0};byH[h].rez++;byH[h].pax+=(Number(r.adult)||0)+(Number(r.child)||0);if(String(r.satis||"").toUpperCase()==="TRUE")byH[h].satis++;else byH[h].bos++;});
+    const rows=Object.entries(byH).sort((a,b)=>b[1].rez-a[1].rez).map(([h,v])=>[h,v.rez,v.pax,v.satis,v.bos]);
+    html=_r6Table(["Otel Adı","Rezervasyon","PAX","Satış","Boş"],rows,{3:"color:#4ade80",4:"color:#f87171"});
+  } else if (num===3) {
+    title="Personel Performansı";
+    const perf={};
+    filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{const isSale=String(r.satis||"").toUpperCase()==="TRUE";[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n=>{if(!perf[n])perf[n]={rez:0,satis:0,bos:0};perf[n].rez++;if(isSale)perf[n].satis++;else perf[n].bos++;});});
+    const rows=Object.entries(perf).sort((a,b)=>b[1].rez-a[1].rez).map(([n,v])=>[n,v.rez,v.satis,v.bos]);
+    html=_r6Table(["Tezgahtar Adı","Toplam Rezervasyon","Satış","Boş"],rows,{2:"color:#4ade80",3:"color:#f87171"});
+  } else if (num===4) {
+    title="Araç Kullanım";
+    const arac={};
+    filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{const p=String(r.ayak||"").trim();if(!p)return;if(!arac[p])arac[p]={count:0,days:[]};arac[p].count++;if(!arac[p].days.includes(r.date))arac[p].days.push(r.date);});
+    const rows=Object.entries(arac).sort((a,b)=>b[1].count-a[1].count).map(([p,v])=>[p,v.count,v.days.length]);
+    html=_r6Table(["Plaka","Sefer","Gün"],rows);
+  } else if (num===5) {
+    title="Plakasız / Atanmamış";
+    const rows=filtered.filter(r=>r.status!=="CANCELLED"&&!String(r.ayak||"").trim()).sort((a,b)=>String(a.time||"").localeCompare(String(b.time||""))).map(r=>[fmtDate(r.date),r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0)]);
+    html=_r6Table(["Tarih","Otel","Saat","PAX"],rows);
+  } else if (num===6) {
+    title="İptal Listesi";
+    const rows=all.filter(r=>r.status==="CANCELLED"&&(!s||r.date>=s)&&(!e||r.date<=e)).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).map(r=>[fmtDate(r.date),r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),r.nation||""]);
+    html=_r6Table(["Tarih","Otel","Saat","PAX","Uyruk"],rows);
+  } else if (num===7) {
+    title="Uyruk Dağılımı";
+    const byN={};filtered.forEach(r=>{const n=r.nation||"Diğer";byN[n]=(byN[n]||0)+1;});
+    const total=filtered.length||1;
+    const rows=Object.entries(byN).sort((a,b)=>b[1]-a[1]).map(([n,v])=>[n,v,((v/total)*100).toFixed(1)+"%"]);
+    html=_r6Table(["Uyruk","Rezervasyon","Yüzde"],rows);
+  } else if (num===8) {
+    title="Saatlik Dağılım";
+    const byH={};filtered.forEach(r=>{const h=String(r.time||"??").slice(0,5);byH[h]=(byH[h]||0)+1;});
+    const rows=Object.entries(byH).sort((a,b)=>a[0].localeCompare(b[0])).map(([h,v])=>[h,v]);
+    html=_r6Table(["Saat","Rezervasyon Sayısı"],rows);
+  }
+
+  _r6Data = {title, num, filtered, all, s, e};
+  el.innerHTML = `<div class="panel-card" style="margin-top:8px">
+    <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+      📋 Rapor ${num}: ${title} &nbsp;·&nbsp; ${filtered.length} kayıt &nbsp;·&nbsp; ${s} → ${e}
+    </div>
+    ${html}
+  </div>`;
+}
+
+async function adminRaporExport(num) {
+  const {all, filtered, s, e} = await _r6GetData();
+  let wb, ws, rows, headers, filename;
+  const thin = { style:"thin", color:{rgb:"555555"} };
+  const border = { top:thin,bottom:thin,left:thin,right:thin };
+  function applyBorder(ws) {
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    ws["!rows"] = Array.from({length:range.e.r+1},()=>({hpx:28}));
+    for (let R=range.s.r;R<=range.e.r;R++) for (let C=range.s.c;C<=range.e.c;C++) {
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      if (!ws[addr]) ws[addr]={v:"",t:"s"};
+      ws[addr].s = ws[addr].s||{};
+      ws[addr].s.border = border;
+      if (R===0) ws[addr].s.font = {bold:true};
+    }
+  }
+  if (num===1) {
+    headers=["Tarih","Otel","Saat","Pax","Uyruk","Personel","Plaka","Satış","Durum"];
+    rows=filtered.sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).map(r=>[fmtDateDot(r.date),r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),r.nation||"",[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).join(", "),r.ayak||"",String(r.satis||"").toUpperCase()==="TRUE"?"SATIŞ":"Boş",r.status||""]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:12},{wch:28},{wch:8},{wch:6},{wch:10},{wch:28},{wch:12},{wch:8},{wch:12}];filename=`rapor1-tum-${s}-${e}.xlsx`;
+  } else if (num===2) {
+    const byH={};filtered.forEach(r=>{const h=r.hotel||"İsimsiz";if(!byH[h])byH[h]={rez:0,pax:0,satis:0,bos:0};byH[h].rez++;byH[h].pax+=(Number(r.adult)||0)+(Number(r.child)||0);if(String(r.satis||"").toUpperCase()==="TRUE")byH[h].satis++;else byH[h].bos++;});
+    headers=["Otel Adı","Rezervasyon","PAX","Satış","Boş"];rows=Object.entries(byH).sort((a,b)=>b[1].rez-a[1].rez).map(([h,v])=>[h,v.rez,v.pax,v.satis,v.bos]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:32},{wch:12},{wch:10},{wch:10},{wch:10}];filename=`rapor2-otel-${s}-${e}.xlsx`;
+  } else if (num===3) {
+    const perf={};filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{const isSale=String(r.satis||"").toUpperCase()==="TRUE";[r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n=>{if(!perf[n])perf[n]={rez:0,satis:0,bos:0};perf[n].rez++;if(isSale)perf[n].satis++;else perf[n].bos++;});});
+    headers=["Tezgahtar Adı","Toplam Rezervasyon","Satış","Boş"];rows=Object.entries(perf).sort((a,b)=>b[1].rez-a[1].rez).map(([n,v])=>[n,v.rez,v.satis,v.bos]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:26},{wch:18},{wch:10},{wch:10}];filename=`rapor3-personel-${s}-${e}.xlsx`;
+  } else if (num===4) {
+    const arac={};filtered.filter(r=>r.status!=="CANCELLED").forEach(r=>{const p=String(r.ayak||"").trim();if(!p)return;if(!arac[p])arac[p]={count:0,days:[]};arac[p].count++;if(!arac[p].days.includes(r.date))arac[p].days.push(r.date);});
+    headers=["Plaka","Sefer","Gün"];rows=Object.entries(arac).sort((a,b)=>b[1].count-a[1].count).map(([p,v])=>[p,v.count,v.days.length]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wpx:110},{wch:8},{wch:8}];filename=`rapor4-arac-${s}-${e}.xlsx`;
+  } else if (num===5) {
+    const pl=filtered.filter(r=>r.status!=="CANCELLED"&&!String(r.ayak||"").trim());
+    const mH=Math.max(...pl.map(r=>(r.hotel||"").length),8);
+    headers=["OTEL ADI","SAAT","PAX","PLAKA"];rows=pl.sort((a,b)=>String(a.time||"").localeCompare(String(b.time||""))).map(r=>[r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),""]);
+    ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:mH+2},{wch:8},{wch:6},{wpx:110}];ws["!rows"]=Array.from({length:rows.length+1},()=>({hpx:35}));filename=`rapor5-plakasiz-${s}-${e}.xlsx`;
+  } else if (num===6) {
+    const ipt=all.filter(r=>r.status==="CANCELLED"&&(!s||r.date>=s)&&(!e||r.date<=e));
+    headers=["Tarih","Otel","Saat","PAX","Uyruk"];rows=ipt.map(r=>[fmtDateDot(r.date),r.hotel||"",r.time||"",(Number(r.adult)||0)+(Number(r.child)||0),r.nation||""]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:12},{wch:28},{wch:8},{wch:6},{wch:10}];filename=`rapor6-iptal-${s}-${e}.xlsx`;
+  } else if (num===7) {
+    const byN={};filtered.forEach(r=>{const n=r.nation||"Diğer";byN[n]=(byN[n]||0)+1;});
+    const total=filtered.length||1;headers=["Uyruk","Rezervasyon","Yüzde"];rows=Object.entries(byN).sort((a,b)=>b[1]-a[1]).map(([n,v])=>[n,v,((v/total)*100).toFixed(1)+"%"]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:16},{wch:14},{wch:10}];filename=`rapor7-uyruk-${s}-${e}.xlsx`;
+  } else if (num===8) {
+    const byH={};filtered.forEach(r=>{const h=String(r.time||"??").slice(0,5);byH[h]=(byH[h]||0)+1;});
+    headers=["Saat","Rezervasyon"];rows=Object.entries(byH).sort((a,b)=>a[0].localeCompare(b[0])).map(([h,v])=>[h,v]);ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws["!cols"]=[{wch:10},{wch:16}];filename=`rapor8-saat-${s}-${e}.xlsx`;
+  }
+  applyBorder(ws);
+  wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Rapor"+num);XLSX.writeFile(wb,filename);
+  showToast(`✅ Rapor ${num} indirildi`);
+}
+
+// ── Kullanıcı Yönetimi ─────────────────────────────────────────
+const ROLE_LABELS = {merkez:'🏠 Merkez',admin:'⚙️ Admin',patron:'👔 Patron',boss:'👁 İzleme'};
+let usersData = [];
+
+async function loadUsers() {
+  userTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text2)">Yükleniyor...</td></tr>';
+  usersData = await getUsers();
+  renderUsers();
+}
+
+function renderUsers() {
+  userTableBody.innerHTML = usersData.length
+    ? usersData.map(u => `
+        <tr>
+          <td><code style="color:var(--gold)">${u.username}</code></td>
+          <td>${u.name||"—"}</td>
+          <td><span class="badge pending">${ROLE_LABELS[u.role]||u.role}</span></td>
+          <td><span class="badge ${u.status==="ACTIVE"?"exited":"cancelled"}">${u.status==="ACTIVE"?"AKTİF":"PASİF"}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="btn-blue btn-sm" onclick="toggleUserStatus('${u.id}','${u.status}')">
+                ${u.status==="ACTIVE"?"⏸ Pasif Yap":"▶ Aktif Yap"}
+              </button>
+              <button class="btn-dark btn-sm" onclick="resetUserPass('${u.id}')">🔑 Şifre</button>
+              <button class="btn-red  btn-sm" onclick="deleteUserUI('${u.id}','${u.username}')">🗑 Sil</button>
+            </div>
+          </td>
+        </tr>`).join("")
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text2)">Kullanıcı yok. Yukarıdan ekleyin.</td></tr>';
+}
+
+async function saveNewUser() {
+  const username = document.getElementById('nUname').value.trim();
+  const password = document.getElementById('nUpass').value.trim();
+  const name     = document.getElementById('nUname2').value.trim();
+  const role     = document.getElementById('nUrole').value;
+  if (!username||!password) return showToast("Kullanıcı adı ve şifre zorunlu","err");
+  if (usersData.find(u=>u.username.toLowerCase()===username.toLowerCase()))
+    return showToast("Bu kullanıcı adı zaten var","err");
+  await addUser({ username, password, name, role });
+  showToast("✅ "+username+" eklendi");
+  document.getElementById('nUname').value='';
+  document.getElementById('nUpass').value='';
+  document.getElementById('nUname2').value='';
+  loadUsers();
+}
+
+async function toggleUserStatus(id, currentStatus) {
+  const newStatus = currentStatus==="ACTIVE" ? "INACTIVE" : "ACTIVE";
+  await updateUser(id, { status: newStatus });
+  showToast(newStatus==="ACTIVE" ? "✅ Aktif yapıldı" : "⏸ Pasif yapıldı");
+  loadUsers();
+}
+
+async function resetUserPass(id) {
+  const newPass = prompt("Yeni şifreyi girin:");
+  if (!newPass || newPass.length < 3) return showToast("Şifre en az 3 karakter olmalı","err");
+  await updateUser(id, { password: newPass });
+  showToast("✅ Şifre güncellendi");
+}
+
+async function deleteUserUI(id, username) {
+  if (!confirm(`"${username}" kullanıcısı silinsin mi?`)) return;
+  // Kendini silemesin
+  if (window._pianoUser && String(window._pianoUser.id) === String(id))
+    return showToast("Kendi hesabınızı silemezsiniz","err");
+  await deleteUser(id);
+  showToast("Kullanıcı silindi");
+  loadUsers();
+}
+
+// ── Rapor tab init
+window.addEventListener("DOMContentLoaded",()=>{
+  aRStart.value = weekStart(todayStr());
+  aREnd.value   = todayStr();
+  if (document.getElementById("r6Start")) {
+    document.getElementById("r6Start").value = weekStart(todayStr());
+    document.getElementById("r6End").value   = todayStr();
+  }
+});
+</script>
+</body>
+</html>

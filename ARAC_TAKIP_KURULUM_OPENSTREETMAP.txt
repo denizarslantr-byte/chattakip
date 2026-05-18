@@ -1,0 +1,118 @@
+PIANO DERI - TNB MOBIL + OPENSTREETMAP ARAÇ TAKIP MODÜLÜ
+=========================================================
+
+BU SÜRÜM NE YAPAR?
+------------------
+- Google Maps kullanmaz; OpenStreetMap + Leaflet kullanır.
+- Harita için API key ve faturalandırma gerekmez.
+- Mevcut rezervasyon Firebase projesine dokunmaz.
+- Araç takip için ayrı Firebase projesi kullanır.
+- Merkez ekranına "Canlı Araç Takip" menüsü eklenmiştir.
+- center/arac-takip.html sayfası eklendi.
+- Beldibi, Göynük, Kemer, Kiriş, Çamyuva, Tekirova bölgesi haritada gösterilir.
+- Mağaza koordinatı etrafında 1 KM uyarı çemberi vardır.
+- Araç müşteri taşıyorken mağazaya 1 KM yaklaşırsa sesli/ekran uyarısı verir.
+- TNB Mobil SOAP web servisi için Firebase Functions proxy eklendi.
+
+DOSYALAR
+--------
+center/arac-takip.html
+assets/arac-takip.js
+config/firebase_arac_takip.js
+functions/index.js
+functions/package.json
+firebase.arac.json
+database.rules.arac.json
+ARAC_TAKIP_KURULUM_OPENSTREETMAP.txt
+
+TNB BILGILERI
+-------------
+Web Servis: https://ws.ats.tnbmobil.com.tr/webservis.asmx
+Firma Kodu: 3029
+Kullanıcı Adı: kayaderiwb
+Şifre: Araç Takip > Ayarlar ekranında kayıtlıdır.
+
+GÜVENLIK NOTU
+-------------
+TNB şifresi web ekranında ayarlara yazıldığı için mümkünse TNB panelinden sadece API için ayrı kullanıcı açın.
+Kurulum sonrası bu kullanıcının şifresini değiştirmeniz önerilir.
+
+YENI FIREBASE KURULUMU
+----------------------
+1. https://console.firebase.google.com adresine girin.
+2. Add project / Proje ekle deyin.
+3. Proje adı örnek: piano-arac-takip
+4. Google Analytics isteğe bağlı, kapalı olabilir.
+5. Build > Realtime Database açın.
+6. Create Database deyin.
+7. Bölge olarak Europe seçin.
+8. Test mode ile başlatın. Sonra database.rules.arac.json içeriğini kullanabilirsiniz.
+9. Project Settings > General > Your apps bölümünden Web App ekleyin.
+10. Size verilen firebaseConfig içeriğini config/firebase_arac_takip.js içine yazın.
+
+ÖRNEK config/firebase_arac_takip.js
+-----------------------------------
+const FIREBASE_ARAC_CONFIG = {
+  apiKey: "...",
+  authDomain: "piano-arac-takip.firebaseapp.com",
+  databaseURL: "https://piano-arac-takip-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "piano-arac-takip",
+  storageBucket: "piano-arac-takip.firebasestorage.app",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+OPENSTREETMAP / LEAFLET
+-----------------------
+Bu sürümde Google Maps API yoktur.
+Harita şu ücretsiz kaynakla gelir:
+- Leaflet: https://unpkg.com/leaflet@1.9.4
+- OpenStreetMap tile: https://tile.openstreetmap.org
+
+Bunlar için Google Cloud, API key veya faturalandırma hesabı gerekmez.
+
+FIREBASE FUNCTIONS / TNB PROXY KURULUMU
+----------------------------------------
+TNB web servisi SOAP olduğu için tarayıcıdan direkt çağrı CORS yüzünden çalışmayabilir.
+Bu yüzden functions/index.js dosyasında tnbLiveVehicles proxy fonksiyonu hazırlandı.
+
+Bilgisayarda Node.js ve Firebase CLI kuruluysa:
+
+1. Komut satırını proje klasöründe açın.
+2. firebase login
+3. firebase use --add
+4. Yeni araç takip Firebase projesini seçin.
+5. Dosya adı firebase.arac.json olduğu için deploy komutu:
+   firebase deploy --config firebase.arac.json
+6. Deploy sonrası Cloud Functions size URL verecek.
+7. Bu URL'yi Araç Takip > Ayarlar > Firebase Function URL alanına yazın.
+
+Eğer hosting rewrite kullanırsanız Function URL yerine şu da denenebilir:
+/tnbLiveVehicles
+
+ARAÇ TAKIP AYARLARI
+-------------------
+Merkez ekran > Canlı Araç Takip > Ayarlar:
+- Mağaza Lat
+- Mağaza Lng
+- TNB Web Servis Linki
+- Firma Kodu
+- Kullanıcı Adı
+- Şifre
+- Firebase Function URL
+- Yaklaşma Mesafesi: 1
+- Yenileme Saniyesi: 60
+
+MAĞAZA KOORDİNATI NASIL ALINIR?
+-------------------------------
+1. OpenStreetMap veya Google Harita açın.
+2. Mağazanın tam üstüne sağ tıklayın.
+3. Çıkan 36.xxxxx, 30.xxxxx koordinatını kopyalayın.
+4. İlk sayı Lat, ikinci sayı Lng alanına yazılır.
+
+ÖNEMLI
+------
+- Firebase bilgileri girilmezse ekran demo modda açılır.
+- Firebase Function URL girilmezse TNB canlı mod çalışmaz, demo mod çalışır.
+- OpenStreetMap ücretsizdir fakat çok yüksek trafikte kendi tile server/kendi harita sağlayıcısı gerekebilir. Normal işletme içi kullanımda bu sürüm uygundur.
+- Canlı konumları çok sık yazdırmayın. Önerilen yenileme: 60 saniye.
