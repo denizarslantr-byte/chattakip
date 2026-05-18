@@ -1,5 +1,129 @@
-<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Araç Takip</title><script>
-const u=JSON.parse(sessionStorage.getItem('pianoUser')||'null');
-if(u&&u.role==='admin') location.replace('../admin/arac-takip.html');
-else { alert('Araç takip sadece admin kullanıcı içindir.'); location.replace('../giris/index.html'); }
-</script></head><body></body></html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Deri · Merkez Araç Takip</title>
+<link rel="stylesheet" href="../assets/piano-theme.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+.leaflet-container{font-family:Arial,Helvetica,sans-serif;background:#111;border-radius:16px}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#161616;color:#f5f0e6;border:1px solid rgba(214,166,63,.35)}
+.vehicle-layout{display:grid;grid-template-columns:300px 1fr 310px;gap:12px;min-height:calc(100vh - 160px)}
+.vehicle-map{height:calc(100vh - 210px);min-height:520px;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.vehicle-panel{min-height:0;overflow:auto;max-height:calc(100vh - 210px)}
+.track-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.track-tabs button.active{background:linear-gradient(135deg,#d6a63f,#a07830);color:#1b1204;border-color:var(--gold)}
+.vehicle-card{padding:12px;border:1px solid var(--border);border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.025);cursor:pointer}.vehicle-card.active{border-color:var(--gold);box-shadow:0 0 0 1px rgba(214,166,63,.25)}
+.vehicle-plate{font-weight:900;color:var(--gold2);font-size:15px}.vehicle-meta,.vehicle-small{font-size:11px;color:var(--text2);line-height:1.55}.vehicle-status{display:inline-block;margin-top:7px;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:900}.vehicle-moving{background:rgba(34,197,94,.15);color:#86efac}.vehicle-stop{background:rgba(234,179,8,.15);color:#fde68a}.vehicle-off{background:rgba(156,163,175,.15);color:#d1d5db}
+.osm-vehicle-marker{background:#2563eb;color:white;border:2px solid #111;border-radius:18px;padding:4px 8px;font-size:11px;font-weight:900;box-shadow:0 3px 14px rgba(0,0,0,.45);white-space:nowrap}.osm-vehicle-marker.customer{background:#16a34a}.osm-vehicle-marker.near{background:#dc2626;animation:pulseMarker 1s infinite}.osm-store-marker{background:#d6a63f;color:#111;border:2px solid #111;border-radius:18px;padding:5px 9px;font-size:12px;font-weight:900;box-shadow:0 3px 14px rgba(0,0,0,.45);white-space:nowrap}.osm-hotel-marker{background:#111;color:#f7d774;border:1px solid #d6a63f;border-radius:16px;padding:4px 7px;font-size:10px;font-weight:800;white-space:nowrap}
+@keyframes pulseMarker{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.form-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px}.form-grid-3{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:10px}.form-grid-2{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:10px}
+.hidden{display:none!important}.admin-only-note{font-size:11px;color:#fbbf24}.map-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.click-pick{outline:2px dashed #d6a63f;outline-offset:3px}
+@media(max-width:1100px){.vehicle-layout{grid-template-columns:1fr}.vehicle-map,.vehicle-panel{max-height:none;height:520px}.form-grid,.form-grid-3,.form-grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app" style="max-width:1720px">
+  <div class="app-brand">
+    <div class="p">P</div><div class="name">PIANO DERİ</div><div class="sub">MERKEZ · ARAÇ TAKİP</div>
+  </div>
+  <div class="panel-card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <a href="dashboard.html" class="btn-dark btn-sm" style="text-decoration:none">← Merkez Ekran</a>
+    <a href="../admin/admin.html" class="btn-dark btn-sm" style="text-decoration:none">Admin</a>
+    <span class="admin-only-note">Bu bölüm admin ve merkez kullanıcıda çalışır.</span>
+    <span style="flex:1"></span><span id="connectionStatus" class="badge pending">Hazırlanıyor</span>
+    <button class="btn-red btn-sm" onclick="logoutTrack()">Çıkış</button>
+  </div>
+  <div class="track-tabs panel-card" style="padding:8px">
+    <button id="trkTab1" class="btn-dark btn-sm active" onclick="openTrackTab(1)">🗺️ Harita</button>
+    <button id="trkTab2" class="btn-dark btn-sm" onclick="openTrackTab(2);renderVehicleAdminList()">🚗 Araçlar</button>
+    <button id="trkTab3" class="btn-dark btn-sm" onclick="openTrackTab(3);renderHotelLocations()">🏨 Otel Koordinatları</button>
+    <button id="trkTab4" class="btn-dark btn-sm" onclick="openTrackTab(4);renderPlateMappings()">🔗 Plaka Eşleştirme</button>
+    <button id="trkTab5" class="btn-dark btn-sm" onclick="openTrackTab(5);fillSettingsForm()">⚙️ Ayarlar</button>
+  </div>
+
+  <section id="trkContent1">
+    <div class="vehicle-layout">
+      <aside class="panel-card vehicle-panel">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><h2 style="margin:0;font-size:18px">🚗 Araçlar</h2><span id="vehicleCount" class="badge pending">0</span></div>
+        <input id="vehicleSearch" placeholder="Plaka ara..." oninput="renderVehicleList()" style="width:100%;margin-bottom:10px">
+        <div id="vehicleList"></div>
+      </aside>
+      <main>
+        <div class="map-actions">
+          <button class="btn-gold btn-sm" onclick="refreshVehicles(true)">↺ Araçları Yenile</button>
+          <button class="btn-dark btn-sm" onclick="toggleDemoMode()" id="demoBtn">Demo Mod</button>
+          <button class="btn-dark btn-sm" onclick="fitRegion()">Bölgeye Dön</button>
+        </div>
+        <div id="map" class="vehicle-map"></div>
+      </main>
+      <aside class="panel-card vehicle-panel">
+        <h2 style="margin-top:0;font-size:18px">🚨 Yaklaşma Uyarısı</h2>
+        <div class="vehicle-small" style="margin-bottom:10px">Araç müşteri taşıyorken mağazaya ayarlanan mesafe kadar yaklaşırsa uyarı verir.</div>
+        <div id="alertList"></div><hr class="divider">
+        <h2 style="font-size:18px">📊 Günlük Özet</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="stat-card"><div id="sumMoving" class="s-val">0</div><div class="s-lbl">Hareketli</div></div>
+          <div class="stat-card"><div id="sumInside" class="s-val">0</div><div class="s-lbl">Müşteri Var</div></div>
+          <div class="stat-card"><div id="sumNear" class="s-val">0</div><div class="s-lbl">Yakın</div></div>
+          <div class="stat-card"><div id="sumKm" class="s-val">0</div><div class="s-lbl">Toplam KM</div></div>
+        </div><hr class="divider">
+        <button class="btn-gold" onclick="exportVehicleDay()" style="width:100%">⬇ Günlük Araç Raporu Excel</button>
+      </aside>
+    </div>
+  </section>
+
+  <section id="trkContent2" class="hidden">
+    <div class="panel-card"><h2 style="color:var(--gold2);margin-top:0">🚗 Araçlar</h2>
+      <div class="form-grid-3">
+        <div><label>Plaka</label><input id="vehPlate" placeholder="07 ABC 123"></div><div><label>Şoför</label><input id="vehDriver" placeholder="Şoför adı"></div><div><label>Marka / Model</label><input id="vehModel" placeholder="Mercedes Vito"></div>
+      </div><br><button class="btn-gold" onclick="saveVehicleMaster()">+ Araç Kaydet</button><button class="btn-dark" onclick="clearVehicleForm()">Temizle</button>
+    </div>
+    <div class="panel-card table-wrap"><table><thead><tr><th>Plaka</th><th>Şoför</th><th>Model</th><th>TNB ID</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="vehicleAdminBody"></tbody></table></div>
+  </section>
+
+  <section id="trkContent3" class="hidden">
+    <div class="panel-card"><h2 style="color:var(--gold2);margin-top:0">🏨 Otel Koordinatları</h2>
+      <div class="notice">Haritada otele tıkla/haritada koordinat seçmek için “Haritadan Koordinat Seç” butonuna bas. Sonraki tıklamada lat/lng otomatik dolar.</div><br>
+      <div class="form-grid">
+        <div><label>Otel Adı</label><input id="hotelName" list="hotelNameList" placeholder="Otel adı"><datalist id="hotelNameList"></datalist></div>
+        <div><label>Bölge</label><select id="hotelRegion"><option>Beldibi</option><option>Göynük</option><option>Kemer</option><option>Kiriş</option><option>Çamyuva</option><option>Tekirova</option></select></div>
+        <div><label>Lat / Enlem</label><input id="hotelLat" placeholder="36...."></div><div><label>Lng / Boylam</label><input id="hotelLng" placeholder="30...."></div>
+      </div><br>
+      <button class="btn-gold" onclick="saveHotelLocation()">💾 Otel Koordinatı Kaydet</button>
+      <button class="btn-dark" onclick="startPickHotelCoord()">📍 Haritadan Koordinat Seç</button>
+      <button class="btn-dark" onclick="clearHotelForm()">Temizle</button>
+    </div>
+    <div class="panel-card table-wrap"><table><thead><tr><th>Otel</th><th>Bölge</th><th>Lat</th><th>Lng</th><th>İşlem</th></tr></thead><tbody id="hotelLocationBody"></tbody></table></div>
+  </section>
+
+  <section id="trkContent4" class="hidden">
+    <div class="panel-card"><h2 style="color:var(--gold2);margin-top:0">🔗 Plaka Eşleştirme</h2>
+      <div class="vehicle-small">TNB’den gelen plaka/cihaz adı ile sistemdeki rezervasyon plakasını eşleştirir. Böylece müşteri içerideyken araç konumu doğru rezervasyona bağlanır.</div><br>
+      <div class="form-grid">
+        <div><label>TNB Araç / Plaka</label><input id="mapTnbPlate" placeholder="TNB plakası"></div><div><label>Sistem Plaka</label><input id="mapSystemPlate" placeholder="Rezervasyondaki plaka"></div><div><label>TNB Cihaz ID</label><input id="mapDeviceId" placeholder="Opsiyonel"></div><div><label>Şoför</label><input id="mapDriver" placeholder="Opsiyonel"></div>
+      </div><br><button class="btn-gold" onclick="savePlateMapping()">💾 Eşleştir</button><button class="btn-dark" onclick="clearMappingForm()">Temizle</button>
+    </div>
+    <div class="panel-card table-wrap"><table><thead><tr><th>TNB Araç</th><th>Sistem Plaka</th><th>Cihaz ID</th><th>Şoför</th><th>İşlem</th></tr></thead><tbody id="mappingBody"></tbody></table></div>
+  </section>
+
+  <section id="trkContent5" class="hidden">
+    <div class="panel-card"><h2 style="color:var(--gold2);margin-top:0">⚙️ Araç Takip Ayarları</h2>
+      <div class="notice">Bu sürüm Google Maps kullanmaz. Harita OpenStreetMap + Leaflet ile ücretsiz çalışır. Firebase bilgileri <b>config/firebase_arac_takip.js</b> dosyasındadır.</div><br>
+      <h3>Mağaza ve Bölge</h3><div class="form-grid">
+        <div><label>Mağaza Lat</label><input id="setStoreLat"></div><div><label>Mağaza Lng</label><input id="setStoreLng"></div><div><label>Bölge Merkezi Lat</label><input id="setRegionLat"></div><div><label>Bölge Merkezi Lng</label><input id="setRegionLng"></div>
+      </div><br><h3>TNB Mobil Web Servis</h3><div class="form-grid-3">
+        <div><label>Web Servis Linki</label><input id="setTnbUrl"></div><div><label>Firma Kodu</label><input id="setTnbCompany"></div><div><label>Kullanıcı Adı</label><input id="setTnbUser"></div><div><label>Şifre</label><input id="setTnbPass" type="password"></div><div><label>Firebase Function URL</label><input id="setProxyUrl" placeholder="https://...cloudfunctions.net/tnbLiveVehicles"></div><div><label>Yenileme Saniyesi</label><input id="setRefreshSec" type="number" min="15"></div>
+      </div><br><h3>Uyarı</h3><div class="form-grid-2"><div><label>Yaklaşma Mesafesi KM</label><input id="setAlertKm" type="number" step="0.1"></div></div><br>
+      <button class="btn-gold" onclick="saveSettings()">💾 Ayarları Kaydet</button><button class="btn-dark" onclick="testTnbConnection()">TNB Test Et</button><button class="btn-dark" onclick="loadMapFromSettings()">Haritayı Yenile</button>
+    </div>
+  </section>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../config/firebase_arac_takip.js?v=20260518-admin-tabs"></script>
+<script src="../config/firebase.js?v=20260518-admin-tabs"></script>
+<script src="../assets/firebase-api.js?v=20260518-admin-tabs"></script>
+<script src="../assets/admin-arac-takip.js?v=20260518-admin-tabs"></script>
+</body>
+</html>
