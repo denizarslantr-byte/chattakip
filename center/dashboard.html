@@ -81,7 +81,7 @@
       <button id="mnRapor"  class="btn-dark" onclick="showSection('raporSection','mnRapor');loadRapor()">📊 Raporlar</button>
       <button id="mnStaff"  class="btn-dark" onclick="showSection('staffSection','mnStaff')">👥 Personeller</button>
       <button id="mnOff"    class="btn-dark" onclick="showSection('offSection','mnOff')">🏖 İzin Girişi</button>
-      <button id="mnPlaka"  class="btn-dark" onclick="showSection('plakaSection','mnPlaka')">🚗 Araçlar</button>
+      <button id="mnPlaka"  class="btn-dark" onclick="showSection('plakaSection','mnPlaka')">🛰 Araç Takip</button>
     </aside>
 
     <!-- Ana İçerik -->
@@ -188,16 +188,10 @@
         </div>
       </section>
 
-      <!-- ARAÇLAR -->
+      <!-- ARAÇ TAKİP -->
       <section id="plakaSection" class="section">
-        <div class="panel-card">
-          <div class="top-bar"><h2>🚗 Araç Yönetimi</h2></div>
-          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-            <input id="plakaGir" placeholder="Plaka (örn: 07ABC123)" style="flex:1;min-width:140px">
-            <input id="modelGir" placeholder="Marka/Model (örn: Ford Transit)" style="flex:1;min-width:140px">
-            <button class="btn-gold" onclick="addPlakaUI()">+ Ekle</button>
-          </div>
-          <div id="plakaList"></div>
+        <div class="panel-card" style="padding:0;overflow:hidden;height:calc(100vh - 190px);min-height:650px">
+          <iframe src="arac-takip.html" title="Araç Takip" style="width:100%;height:100%;border:0;background:#0b0b0b"></iframe>
         </div>
       </section>
 

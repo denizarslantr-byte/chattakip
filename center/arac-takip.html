@@ -276,7 +276,7 @@ function startFirebaseListen() {
   });
 
   // Araç tanımları + otel/mağaza konumları yükle
-  loadStaticData();
+  loadStaticData().then(() => startLiveApiLoop());
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -446,6 +446,154 @@ function renderAlerts(uyarilar) {
       showToast((v.tip==='MAGAZA_YAKIN'?'🏬':'🏨') + ' ' + (v.mesaj||'Yeni uyarı'));
     }
   });
+}
+
+
+
+// ════════════════════════════════════════════════════════════════
+// CANLI API OKUMA — Render/Vercel API'den araç konumlarını direkt çeker
+// Not: URL ayarlardan kök olarak girildiyse otomatik /api/tnb ekler.
+// ════════════════════════════════════════════════════════════════
+let liveApiTimer = null;
+
+function findSavedApiUrl() {
+  const candidates = [];
+  try {
+    const lsKeys = ['aracTakipSettings','piano_arac_takip_settings','piano_arac_settings','tnbApiUrl','firebaseFunctionUrl'];
+    for (const k of lsKeys) {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      try {
+        const o = JSON.parse(raw);
+        candidates.push(o.firebaseFunctionUrl, o.functionUrl, o.apiUrl, o.tnbApiUrl, o.url);
+      } catch(_) { candidates.push(raw); }
+    }
+    for (let i=0;i<localStorage.length;i++) {
+      const v = localStorage.getItem(localStorage.key(i)) || '';
+      const m = v.match(/https?:\/\/[^"'\s]+onrender\.com[^"'\s]*/i) || v.match(/https?:\/\/[^"'\s]+vercel\.app[^"'\s]*/i);
+      if (m) candidates.push(m[0]);
+    }
+  } catch(e) {}
+  const first = candidates.filter(Boolean).map(String).find(u => /^https?:\/\//i.test(u));
+  return normalizeApiUrl(first || 'https://chattakip-api.onrender.com/api/tnb');
+}
+
+function normalizeApiUrl(url) {
+  url = String(url || '').trim();
+  if (!url) return '';
+  url = url.replace(/\/+$/,'');
+  if (!/\/api\/tnb$/i.test(url) && /onrender\.com|vercel\.app/i.test(url)) url += '/api/tnb';
+  return url;
+}
+
+function normalizePlate(v) { return String(v||'').replace(/\s+/g,'').replace(/[^A-Z0-9]/gi,'').toUpperCase(); }
+
+async function loadApiUrlFromFirebase() {
+  try {
+    const ayar = await fbGet('arac_takip/ayarlar');
+    const url = ayar && (ayar.firebaseFunctionUrl || ayar.functionUrl || ayar.apiUrl || ayar.tnbApiUrl || ayar.url);
+    return normalizeApiUrl(url) || findSavedApiUrl();
+  } catch(e) { return findSavedApiUrl(); }
+}
+
+function parseXmlVehicles(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const all = Array.from(doc.getElementsByTagName('*'));
+  const groups = all.filter(el => {
+    const names = Array.from(el.children).map(c => c.localName.toLowerCase());
+    return names.some(n => ['plaka','enlem','lat','latitude'].includes(n)) && names.some(n => ['boylam','lng','lon','longitude'].includes(n));
+  });
+  return groups.map(el => {
+    const get = (...names) => {
+      for (const n of names) {
+        const c = Array.from(el.children).find(x => x.localName.toLowerCase() === n.toLowerCase());
+        if (c) return c.textContent.trim();
+      }
+      return '';
+    };
+    return {
+      plaka: get('Plaka','plaka','PLAKA','AracPlaka','aracPlaka'),
+      cihaz_id: get('CihazId','cihazId','CihazID','ID'),
+      lat: get('Enlem','Lat','Latitude','lat'),
+      lng: get('Boylam','Lng','Lon','Longitude','lng'),
+      hiz: get('Hiz','Speed','hiz'),
+      km: get('Km','KmSayaci','km'),
+      yon: get('Yon','Direction','yon'),
+      zaman: get('Zaman','Time','Tarih','tarih')
+    };
+  }).filter(x => x.plaka || x.cihaz_id);
+}
+
+function flattenVehiclesJson(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.vehicles)) return data.vehicles;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.araclar)) return data.araclar;
+  if (data.result) return flattenVehiclesJson(data.result);
+  return Object.values(data).filter(v => v && typeof v === 'object');
+}
+
+function pick(obj, names) {
+  for (const n of names) {
+    if (obj[n] !== undefined && obj[n] !== null && String(obj[n]).trim() !== '') return obj[n];
+  }
+  const low = {};
+  Object.keys(obj || {}).forEach(k => low[k.toLowerCase()] = obj[k]);
+  for (const n of names) {
+    const v = low[String(n).toLowerCase()];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+
+async function syncLiveApiOnce() {
+  const url = await loadApiUrlFromFirebase();
+  if (!url) return;
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    const text = await r.text();
+    let rows = [];
+    try { rows = flattenVehiclesJson(JSON.parse(text)); }
+    catch(_) { rows = parseXmlVehicles(text); }
+    if (!rows.length) return;
+
+    const defs = Object.values(vehicleDefs || {});
+    const out = {};
+    rows.forEach(row => {
+      const tnbPlate = normalizePlate(pick(row, ['plaka','Plaka','plate','aracPlaka','arac_plaka','TNBPLAKA','tnb_plaka']));
+      const deviceId = String(pick(row, ['cihaz_id','cihazId','CihazID','CihazId','deviceId','id']) || '').trim();
+      const def = defs.find(d =>
+        normalizePlate(d.tnb_plaka) === tnbPlate ||
+        normalizePlate(d.kisa_plaka) === tnbPlate ||
+        (deviceId && String(d.cihaz_id || d.device_id || '').trim() === deviceId)
+      );
+      const key = def ? def.kisa_plaka : (tnbPlate || deviceId);
+      const lat = parseFloat(String(pick(row, ['lat','Lat','Enlem','latitude','Latitude'])).replace(',', '.'));
+      const lng = parseFloat(String(pick(row, ['lng','Lng','lon','Lon','Boylam','longitude','Longitude'])).replace(',', '.'));
+      if (!key || !lat || !lng) return;
+      const hiz = parseInt(pick(row, ['hiz','Hiz','speed','Speed']) || 0) || 0;
+      out[key] = {
+        lat, lng, hiz,
+        km: parseInt(pick(row, ['km','Km','KmSayaci','odometer']) || 0) || 0,
+        yon: parseInt(pick(row, ['yon','Yon','direction']) || 0) || 0,
+        guncelleme: pick(row, ['zaman','Zaman','time','Time','tarih','Tarih']) || new Date().toISOString(),
+        durum: hiz > 3 ? 'HAREKET' : 'BEKLIYOR'
+      };
+    });
+    if (Object.keys(out).length) {
+      renderVehicles(out);
+      try { await fetch(`${FB_BASE}/arac_takip/konumlar.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(out)}); } catch(e) {}
+    }
+  } catch(e) {
+    console.warn('Canlı API okunamadı:', e);
+  }
+}
+
+async function startLiveApiLoop() {
+  await syncLiveApiOnce();
+  if (liveApiTimer) clearInterval(liveApiTimer);
+  liveApiTimer = setInterval(syncLiveApiOnce, 60 * 1000);
 }
 
 // ════════════════════════════════════════════════════════════════

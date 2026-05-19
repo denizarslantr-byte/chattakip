@@ -1,0 +1,18 @@
+YAPILAN GÜNCELLEMELER
+
+1) Merkez ekranda sol menüdeki "Araçlar" sekmesi kaldırıldı.
+2) Yerine "Araç Takip" sekmesi eklendi.
+3) Araç Takip sekmesine basınca harita ekranı aynı sayfa içinde açılır.
+4) Admin > Araç Tanımları bölümüne opsiyonel TNB Cihaz ID alanı eklendi.
+5) Harita ekranı Firebase konumlarını dinlemeye devam eder.
+6) Ek olarak Render/Vercel API URL'sinden canlı araç verisini okumaya çalışır.
+7) Render URL kök olarak girildiyse otomatik /api/tnb eklenir.
+
+ÖNEMLİ:
+Araç haritada görünmüyorsa Firebase Function URL / Canlı API URL alanı şu formatta olmalıdır:
+https://chattakip-api.onrender.com/api/tnb
+
+Sadece şu şekilde kalırsa eksik olur:
+https://chattakip-api.onrender.com
+
+Plaka eşleştirme tek başına haritada araç göstermez. Haritada araç çıkması için TNB canlı konum verisinin API üzerinden gelmesi gerekir.

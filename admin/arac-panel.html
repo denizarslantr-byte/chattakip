@@ -114,6 +114,10 @@
       <input type="text" id="vTnb" placeholder="07 ABC 946" maxlength="20" style="width:150px;text-transform:uppercase">
     </div>
     <div class="form-row">
+      <label>TNB Cihaz ID</label>
+      <input type="text" id="vCihaz" placeholder="Opsiyonel" maxlength="30" style="width:180px">
+    </div>
+    <div class="form-row">
       <label>Model</label>
       <input type="text" id="vModel" placeholder="Mercedes Sprinter 16+1" style="width:220px">
     </div>
@@ -327,7 +331,7 @@ async function loadVehicles() {
       <div class="card-row">
         <div class="card-title">🚗 ${v.kisa_plaka}</div>
         <span class="badge ${v.aktif===false?'badge-red':'badge-green'}">${v.aktif===false?'Pasif':'Aktif'}</span>
-        <div style="font-size:12px;color:#888">TNB: <code>${v.tnb_plaka||'?'}</code> &nbsp;|&nbsp; ${v.model||'—'}</div>
+        <div style="font-size:12px;color:#888">TNB: <code>${v.tnb_plaka||'?'}</code> &nbsp;|&nbsp; ${v.model||'—'} &nbsp;|&nbsp; Cihaz: <code>${v.cihaz_id||'—'}</code></div>
         <button class="btn-dark btn-sm" onclick="toggleVehicleForm('${id}')">✏</button>
         <button class="btn-red btn-sm" onclick="deleteVehicle('${id}','${v.kisa_plaka}')">Sil</button>
       </div>
@@ -339,6 +343,10 @@ async function loadVehicles() {
         <div class="form-row">
           <label>TNB Plaka</label>
           <input type="text" id="vt_${id}" value="${v.tnb_plaka||''}" style="width:150px;text-transform:uppercase">
+        </div>
+        <div class="form-row">
+          <label>TNB Cihaz ID</label>
+          <input type="text" id="vc_${id}" value="${v.cihaz_id||''}" style="width:180px">
         </div>
         <div class="form-row">
           <label>Model</label>
@@ -367,13 +375,15 @@ async function addVehicle() {
   const kisa  = document.getElementById('vKisa').value.trim().toUpperCase();
   const tnb   = document.getElementById('vTnb').value.trim().toUpperCase();
   const model = document.getElementById('vModel').value.trim();
+  const cihaz = document.getElementById('vCihaz').value.trim();
   if (!kisa || !tnb) { toast('Kısa plaka ve TNB plaka zorunlu', 'err'); return; }
   const id = 'arac_' + Date.now();
-  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka: kisa, tnb_plaka: tnb, model, aktif: true, createdAt: new Date().toISOString() });
+  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka: kisa, tnb_plaka: tnb, cihaz_id: cihaz, model, aktif: true, createdAt: new Date().toISOString() });
   toast(`✅ ${kisa} eklendi`);
   document.getElementById('vKisa').value = '';
   document.getElementById('vTnb').value  = '';
   document.getElementById('vModel').value = '';
+  document.getElementById('vCihaz').value = '';
   loadVehicles();
 }
 
@@ -381,8 +391,9 @@ async function updateVehicle(id) {
   const kisa  = document.getElementById(`vk_${id}`)?.value.trim().toUpperCase();
   const tnb   = document.getElementById(`vt_${id}`)?.value.trim().toUpperCase();
   const model = document.getElementById(`vm_${id}`)?.value.trim();
+  const cihaz = document.getElementById(`vc_${id}`)?.value.trim();
   const aktif = document.getElementById(`va_${id}`)?.value === 'true';
-  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka:kisa, tnb_plaka:tnb, model, aktif, createdAt: new Date().toISOString() });
+  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka:kisa, tnb_plaka:tnb, cihaz_id:cihaz, model, aktif, createdAt: new Date().toISOString() });
   toast('✅ Güncellendi');
   loadVehicles();
 }
