@@ -82,7 +82,6 @@
       <button id="mnStaff"  class="btn-dark" onclick="showSection('staffSection','mnStaff')">👥 Personeller</button>
       <button id="mnOff"    class="btn-dark" onclick="showSection('offSection','mnOff')">🏖 İzin Girişi</button>
       <button id="mnPlaka"  class="btn-dark" onclick="showSection('plakaSection','mnPlaka')">🚗 Araçlar</button>
-      <button id="mnAracTakip" class="btn-dark" onclick="window.location.href='arac-takip.html'">🗺️ Canlı Araç Takip</button>
     </aside>
 
     <!-- Ana İçerik -->
@@ -828,9 +827,25 @@ async function saveCenterReservation() {
 }
 
 async function cancelRes(id) {
-  if (!confirm("Bu rezervasyon iptal edilsin mi?")) return;
-  await updateReservation(id, { status: "CANCELLED", updatedAt: new Date().toISOString() });
-  showToast("Rezervasyon iptal edildi");
+  // Rezervasyonu bul
+  const r = reservations.find(x => String(x.id) === String(id) || String(x._key) === String(id));
+  if (!r) return;
+
+  const hasGirdi = String(r.girdi).toUpperCase() === "TRUE";
+  const hasCikti = String(r.cikti).toUpperCase() === "TRUE";
+  const hasSatis = String(r.satis).toUpperCase() === "TRUE";
+  const isCancelled = r.status === "CANCELLED";
+
+  // İşlem yapılmışsa sil
+  if (hasGirdi || hasCikti || hasSatis) {
+    alert("⛔ SİLME İŞLEMİ YAPTIĞINIZ REZERVASYON İŞLEM OLDUĞUNDAN SİLİNEMEZ!\n\nGiriş, çıkış veya satış işlemi yapılmış rezervasyonlar silinemez.");
+    return;
+  }
+
+  // İptal olmuş veya işlemsiz → direkt sil
+  if (!confirm("Bu rezervasyon kalıcı olarak silinecek. Emin misiniz?")) return;
+  await deleteReservation(id);
+  showToast("Rezervasyon silindi");
   await loadAll();
 }
 

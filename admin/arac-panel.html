@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Piano Deri — Araç & Konum Yönetimi</title>
+<link rel="stylesheet" href="../assets/piano-theme.css">
+<style>
+  body{margin:0;background:var(--bg,#0d0d0d);color:var(--text,#e8e0d0);font-family:'Segoe UI',sans-serif;}
+  .ap-header{background:var(--panel,#1a1a1a);border-bottom:1px solid var(--gold,#c9a84c);padding:14px 24px;display:flex;align-items:center;gap:16px;}
+  .ap-logo{color:var(--gold,#c9a84c);font-size:22px;font-weight:700;letter-spacing:2px;}
+  .ap-subtitle{color:var(--text2,#888);font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+  .ap-back{margin-left:auto;background:transparent;border:1px solid var(--gold,#c9a84c);color:var(--gold,#c9a84c);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;}
+  .tabs{display:flex;gap:0;background:var(--panel,#1a1a1a);border-bottom:1px solid #333;padding:0 24px;}
+  .tab-btn{background:transparent;border:none;border-bottom:3px solid transparent;color:var(--text2,#888);padding:12px 20px;cursor:pointer;font-size:13px;transition:all .2s;}
+  .tab-btn.active{border-bottom-color:var(--gold,#c9a84c);color:var(--gold,#c9a84c);}
+  .tab-btn:hover{color:var(--text,#e8e0d0);}
+  .tab-panel{display:none;padding:24px;max-width:900px;margin:0 auto;}
+  .tab-panel.active{display:block;}
+  .section-title{font-size:15px;font-weight:600;color:var(--gold,#c9a84c);margin:0 0 16px;display:flex;align-items:center;gap:8px;}
+  .card{background:var(--panel,#1a1a1a);border:1px solid #333;border-radius:10px;padding:16px;margin-bottom:12px;}
+  .card-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .card-title{font-weight:600;font-size:14px;flex:1;min-width:120px;}
+  .coord-display{font-size:12px;color:var(--text2,#888);font-family:monospace;}
+  input,select{background:#111;border:1px solid #444;color:var(--text,#e8e0d0);padding:7px 11px;border-radius:6px;font-size:13px;outline:none;}
+  input:focus,select:focus{border-color:var(--gold,#c9a84c);}
+  input[type=number]{width:130px;}
+  .btn-gold{background:var(--gold,#c9a84c);color:#000;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;}
+  .btn-dark{background:#2a2a2a;color:var(--text,#e8e0d0);border:1px solid #444;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;}
+  .btn-red{background:#7f1d1d;color:#fca5a5;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+  .badge-green{background:#14532d;color:#4ade80;}
+  .badge-red{background:#7f1d1d;color:#fca5a5;}
+  .badge-yellow{background:#713f12;color:#fbbf24;}
+  .toast{position:fixed;top:20px;right:24px;background:#1a1a1a;border:1px solid var(--gold,#c9a84c);color:var(--text,#e8e0d0);padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;}
+  .inline-form{background:#111;border:1px solid #444;border-radius:8px;padding:14px;margin-top:10px;display:none;}
+  .inline-form.open{display:block;}
+  .form-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  label{font-size:12px;color:var(--text2,#888);min-width:80px;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .login-box{background:var(--panel,#1a1a1a);border:1px solid var(--gold,#c9a84c);border-radius:14px;padding:40px;min-width:300px;text-align:center;}
+  .login-box h2{color:var(--gold,#c9a84c);margin:0 0 24px;font-size:18px;}
+  .login-box input{width:100%;box-sizing:border-box;font-size:18px;letter-spacing:8px;text-align:center;margin-bottom:16px;}
+  .alert-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#111;border:1px solid #333;margin-bottom:8px;}
+  .alert-item.unread{border-color:#c9a84c44;background:#1a1500;}
+  .alert-dot{width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0;margin-top:5px;}
+  .alert-item.unread .alert-dot{animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  .stat-box{background:#111;border:1px solid #333;border-radius:8px;padding:14px;text-align:center;}
+  .stat-box .num{font-size:26px;font-weight:700;color:var(--gold,#c9a84c);}
+  .stat-box .lbl{font-size:11px;color:var(--text2,#888);margin-top:4px;}
+  #loginOverlay p{color:#888;font-size:12px;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="loginOverlay" class="overlay">
+  <div class="login-box">
+    <h2>🚗 Araç &amp; Konum Yönetimi</h2>
+    <input type="password" id="pinInput" placeholder="Admin PIN" maxlength="6">
+    <button class="btn-gold" style="width:100%" onclick="checkPin()">Giriş</button>
+    <p id="pinErr" style="color:#ef4444;font-size:12px;margin-top:8px;display:none">Yanlış PIN</p>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="ap-header">
+  <div>
+    <div class="ap-logo">P  PIANO DERİ</div>
+    <div class="ap-subtitle">Araç &amp; Konum Yönetimi</div>
+  </div>
+  <button class="ap-back" onclick="window.location='admin.html'">← Admin Panele Dön</button>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('hotels')">🏨 Otel Koordinatları</button>
+  <button class="tab-btn" onclick="switchTab('vehicles')">🚗 Araç Tanımları</button>
+  <button class="tab-btn" onclick="switchTab('store')">🏬 Merkez Mağaza</button>
+  <button class="tab-btn" onclick="switchTab('alerts')">🔔 Uyarı Geçmişi</button>
+</div>
+
+<!-- ══ TAB 1: OTEL KOORDİNATLARI ══════════════════════════════ -->
+<div id="tab-hotels" class="tab-panel active">
+  <div class="section-title">🏨 Otel Koordinatları</div>
+  <p style="font-size:12px;color:#888;margin-bottom:16px">
+    Her otelin harita koordinatını girerek araç yakınlık uyarılarını aktifleştirin.<br>
+    Google Maps'te otele sağ tıkla → koordinatları kopyala.
+  </p>
+  <div id="hotelList">
+    <div style="color:#888;text-align:center;padding:30px">Oteller yükleniyor...</div>
+  </div>
+</div>
+
+<!-- ══ TAB 2: ARAÇ TANIMLARI ══════════════════════════════════ -->
+<div id="tab-vehicles" class="tab-panel">
+  <div class="section-title">🚗 Araç Tanımları</div>
+  <p style="font-size:12px;color:#888;margin-bottom:16px">
+    TNB sistemindeki araç plakasını merkez panelde kullanılan kısa plakayla eşle.<br>
+    Merkez panelde kullanılan format: <code style="color:#c9a84c">07ABC946</code>
+  </p>
+  <!-- Yeni araç formu -->
+  <div class="card" style="border-color:#c9a84c44">
+    <div class="section-title" style="font-size:13px;margin-bottom:12px">+ Yeni Araç Ekle</div>
+    <div class="form-row">
+      <label>Kısa Plaka</label>
+      <input type="text" id="vKisa" placeholder="07ABC946" maxlength="15" style="width:130px;text-transform:uppercase">
+    </div>
+    <div class="form-row">
+      <label>TNB Plaka</label>
+      <input type="text" id="vTnb" placeholder="07 ABC 946" maxlength="20" style="width:150px;text-transform:uppercase">
+    </div>
+    <div class="form-row">
+      <label>Model</label>
+      <input type="text" id="vModel" placeholder="Mercedes Sprinter 16+1" style="width:220px">
+    </div>
+    <button class="btn-gold" onclick="addVehicle()">Kaydet</button>
+  </div>
+  <div id="vehicleList"><div style="color:#888;padding:20px">Araçlar yükleniyor...</div></div>
+</div>
+
+<!-- ══ TAB 3: MERKEZ MAĞAZA ════════════════════════════════════ -->
+<div id="tab-store" class="tab-panel">
+  <div class="section-title">🏬 Merkez Mağaza Tanımı</div>
+  <p style="font-size:12px;color:#888;margin-bottom:20px">
+    Araçların yaklaşma uyarısı vereceği merkez mağaza konumu ve mesafesi.
+  </p>
+  <div class="card">
+    <div class="form-row">
+      <label>Mağaza Adı</label>
+      <input type="text" id="sAd" placeholder="Piano Deri Merkez Mağaza" style="width:280px">
+    </div>
+    <div class="form-row">
+      <label>Enlem (Lat)</label>
+      <input type="number" id="sLat" placeholder="36.576000" step="0.000001">
+    </div>
+    <div class="form-row">
+      <label>Boylam (Lng)</label>
+      <input type="number" id="sLng" placeholder="30.556000" step="0.000001">
+    </div>
+    <div class="form-row">
+      <label>Uyarı Mesafesi</label>
+      <input type="number" id="sRadius" placeholder="500" style="width:100px">
+      <span style="font-size:12px;color:#888">metre</span>
+    </div>
+    <div class="form-row" style="margin-top:4px">
+      <label>Aktif</label>
+      <select id="sAktif" style="width:100px">
+        <option value="true">Evet</option>
+        <option value="false">Hayır</option>
+      </select>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+      <button class="btn-gold" onclick="saveStore()">💾 Kaydet</button>
+      <button class="btn-dark btn-sm" onclick="openGoogleMaps('store')">🗺 Haritada Gör</button>
+      <span id="storeStatus" style="font-size:12px;color:#888"></span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div style="font-size:12px;color:#888;line-height:1.6">
+      <b style="color:#c9a84c">💡 Google Maps'ten Koordinat Alma</b><br>
+      1. maps.google.com'u aç<br>
+      2. Mağaza konumuna sağ tıkla<br>
+      3. İlk satırdaki koordinatları kopyala (örn: 36.576012, 30.556234)<br>
+      4. İlk sayı Enlem, ikinci sayı Boylam
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 4: UYARI GEÇMİŞİ ══════════════════════════════════ -->
+<div id="tab-alerts" class="tab-panel">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div class="section-title" style="margin:0">🔔 Uyarı Geçmişi</div>
+    <button class="btn-dark btn-sm" onclick="markAllRead()">✓ Tümünü Okundu İşaretle</button>
+    <button class="btn-dark btn-sm" onclick="clearOldAlerts()">🗑 24 Saat Üstünü Temizle</button>
+  </div>
+  <div id="statGrid" class="stat-grid"></div>
+  <div id="alertList"><div style="color:#888;padding:20px">Uyarılar yükleniyor...</div></div>
+</div>
+
+<div id="toast" class="toast" style="opacity:0"></div>
+
+<script src="../config/firebase.js"></script>
+<script src="../config/config.js"></script>
+<script>
+// ── Sabitler ───────────────────────────────────────────────────
+const FB_URL_BASE = (typeof FIREBASE_CONFIG !== 'undefined')
+  ? FIREBASE_CONFIG.databaseURL
+  : 'https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app';
+
+// ── Auth ───────────────────────────────────────────────────────
+async function checkPin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (!pin) return;
+  try {
+    const r = await fetch(`${FB_URL_BASE}/adminPin.json`);
+    const storedPin = await r.json();
+    const valid = storedPin ? String(storedPin) === pin : pin === (typeof DEFAULT_PIN !== 'undefined' ? DEFAULT_PIN : '1907');
+    if (valid) {
+      document.getElementById('loginOverlay').style.display = 'none';
+      initAll();
+    } else {
+      document.getElementById('pinErr').style.display = 'block';
+    }
+  } catch(e) { toast('Firebase bağlantı hatası', 'err'); }
+}
+document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') checkPin(); });
+
+// ── Tab Yönetimi ───────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'hotels')  loadHotels();
+  if (name === 'vehicles') loadVehicles();
+  if (name === 'store')   loadStore();
+  if (name === 'alerts')  loadAlerts();
+}
+
+// ── Firebase CRUD ──────────────────────────────────────────────
+async function fbGet(path) {
+  const r = await fetch(`${FB_URL_BASE}/${path}.json`);
+  const t = await r.text();
+  return t === 'null' ? null : JSON.parse(t);
+}
+async function fbPut(path, data) {
+  await fetch(`${FB_URL_BASE}/${path}.json`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+  });
+}
+async function fbDelete(path) {
+  await fetch(`${FB_URL_BASE}/${path}.json`, { method:'DELETE' });
+}
+function slugify(s) {
+  return String(s||'').toLowerCase()
+    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+}
+
+// ══ OTEL KOORDİNATLARI ════════════════════════════════════════
+async function loadHotels() {
+  const el = document.getElementById('hotelList');
+  el.innerHTML = '<div style="color:#888;padding:20px">Yükleniyor...</div>';
+  try {
+    const [apiHotels, fbKonumlar] = await Promise.all([
+      fetch(`${API_URL}?action=getHotels&apiKey=${API_KEY}`).then(r=>r.json()).catch(()=>({hotels:[]})),
+      fbGet('arac_takip/otel_konumlar')
+    ]);
+    const hotels = (apiHotels.hotels || []).filter(h => h && h.hotel);
+    const konumlar = fbKonumlar || {};
+
+    if (!hotels.length) { el.innerHTML = '<div style="color:#888;padding:20px">Otel bulunamadı. API bağlantısını kontrol edin.</div>'; return; }
+
+    el.innerHTML = hotels.map(h => {
+      const key = slugify(h.hotel);
+      const k   = konumlar[key];
+      const hasCoord = k && k.lat && k.lng;
+      return `<div class="card" id="hcard_${key}">
+        <div class="card-row">
+          <div class="card-title">${h.hotel}</div>
+          <span class="badge ${hasCoord ? 'badge-green' : 'badge-yellow'}">${hasCoord ? '📍 Tanımlı' : '⚠ Koordinat yok'}</span>
+          ${hasCoord ? `<div class="coord-display">${k.lat.toFixed(6)}, ${k.lng.toFixed(6)} (${k.yaklasma_m||300}m)</div>` : ''}
+          <button class="btn-dark btn-sm" onclick="toggleHotelForm('${key}','${h.hotel.replace(/'/g,"\\'")}')">✏ Düzenle</button>
+          ${hasCoord ? `<button class="btn-dark btn-sm" onclick="openGoogleMaps('hotel','${key}')">🗺</button>` : ''}
+        </div>
+        <div class="inline-form" id="hform_${key}">
+          <div class="form-row">
+            <label>Enlem (Lat)</label>
+            <input type="number" id="hlat_${key}" value="${k ? k.lat : ''}" placeholder="36.520000" step="0.000001">
+          </div>
+          <div class="form-row">
+            <label>Boylam (Lng)</label>
+            <input type="number" id="hlng_${key}" value="${k ? k.lng : ''}" placeholder="30.540000" step="0.000001">
+          </div>
+          <div class="form-row">
+            <label>Yakınlık (m)</label>
+            <input type="number" id="hrad_${key}" value="${k ? (k.yaklasma_m||300) : 300}" style="width:100px">
+            <span style="font-size:12px;color:#888">metre (araç bu mesafeye yaklaşınca uyarı)</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn-gold btn-sm" onclick="saveHotelCoord('${key}','${h.hotel.replace(/'/g,"\\'")}')">💾 Kaydet</button>
+            <button class="btn-dark btn-sm" onclick="toggleHotelForm('${key}','')">İptal</button>
+            ${hasCoord ? `<button class="btn-red btn-sm" onclick="deleteHotelCoord('${key}')">Sil</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<div style="color:#ef4444">Hata: ${e.message}</div>`; }
+}
+
+function toggleHotelForm(key, name) {
+  const f = document.getElementById(`hform_${key}`);
+  f.classList.toggle('open');
+}
+
+async function saveHotelCoord(key, name) {
+  const lat = parseFloat(document.getElementById(`hlat_${key}`)?.value);
+  const lng = parseFloat(document.getElementById(`hlng_${key}`)?.value);
+  const rad = parseInt(document.getElementById(`hrad_${key}`)?.value) || 300;
+  if (!lat || !lng) { toast('Koordinat girin', 'err'); return; }
+  await fbPut(`arac_takip/otel_konumlar/${key}`, { otel_adi: name, lat, lng, yaklasma_m: rad });
+  toast(`✅ ${name} koordinatı kaydedildi`);
+  loadHotels();
+}
+
+async function deleteHotelCoord(key) {
+  if (!confirm('Koordinat silinsin mi?')) return;
+  await fbDelete(`arac_takip/otel_konumlar/${key}`);
+  toast('Koordinat silindi');
+  loadHotels();
+}
+
+// ══ ARAÇ TANIMLARI ════════════════════════════════════════════
+async function loadVehicles() {
+  const el = document.getElementById('vehicleList');
+  el.innerHTML = '<div style="color:#888;padding:20px">Yükleniyor...</div>';
+  const data = await fbGet('arac_takip/araclar');
+  const list = data ? Object.entries(data).filter(([k,v])=>v&&v.kisa_plaka) : [];
+  if (!list.length) { el.innerHTML = '<div style="color:#888;padding:16px">Henüz araç eklenmedi.</div>'; return; }
+  el.innerHTML = list.map(([id, v]) => `
+    <div class="card">
+      <div class="card-row">
+        <div class="card-title">🚗 ${v.kisa_plaka}</div>
+        <span class="badge ${v.aktif===false?'badge-red':'badge-green'}">${v.aktif===false?'Pasif':'Aktif'}</span>
+        <div style="font-size:12px;color:#888">TNB: <code>${v.tnb_plaka||'?'}</code> &nbsp;|&nbsp; ${v.model||'—'}</div>
+        <button class="btn-dark btn-sm" onclick="toggleVehicleForm('${id}')">✏</button>
+        <button class="btn-red btn-sm" onclick="deleteVehicle('${id}','${v.kisa_plaka}')">Sil</button>
+      </div>
+      <div class="inline-form" id="vform_${id}">
+        <div class="form-row">
+          <label>Kısa Plaka</label>
+          <input type="text" id="vk_${id}" value="${v.kisa_plaka||''}" style="width:130px;text-transform:uppercase">
+        </div>
+        <div class="form-row">
+          <label>TNB Plaka</label>
+          <input type="text" id="vt_${id}" value="${v.tnb_plaka||''}" style="width:150px;text-transform:uppercase">
+        </div>
+        <div class="form-row">
+          <label>Model</label>
+          <input type="text" id="vm_${id}" value="${v.model||''}" style="width:220px">
+        </div>
+        <div class="form-row">
+          <label>Durum</label>
+          <select id="va_${id}" style="width:100px">
+            <option value="true" ${v.aktif!==false?'selected':''}>Aktif</option>
+            <option value="false" ${v.aktif===false?'selected':''}>Pasif</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-gold btn-sm" onclick="updateVehicle('${id}')">💾 Güncelle</button>
+          <button class="btn-dark btn-sm" onclick="toggleVehicleForm('${id}')">İptal</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleVehicleForm(id) {
+  document.getElementById(`vform_${id}`)?.classList.toggle('open');
+}
+
+async function addVehicle() {
+  const kisa  = document.getElementById('vKisa').value.trim().toUpperCase();
+  const tnb   = document.getElementById('vTnb').value.trim().toUpperCase();
+  const model = document.getElementById('vModel').value.trim();
+  if (!kisa || !tnb) { toast('Kısa plaka ve TNB plaka zorunlu', 'err'); return; }
+  const id = 'arac_' + Date.now();
+  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka: kisa, tnb_plaka: tnb, model, aktif: true, createdAt: new Date().toISOString() });
+  toast(`✅ ${kisa} eklendi`);
+  document.getElementById('vKisa').value = '';
+  document.getElementById('vTnb').value  = '';
+  document.getElementById('vModel').value = '';
+  loadVehicles();
+}
+
+async function updateVehicle(id) {
+  const kisa  = document.getElementById(`vk_${id}`)?.value.trim().toUpperCase();
+  const tnb   = document.getElementById(`vt_${id}`)?.value.trim().toUpperCase();
+  const model = document.getElementById(`vm_${id}`)?.value.trim();
+  const aktif = document.getElementById(`va_${id}`)?.value === 'true';
+  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka:kisa, tnb_plaka:tnb, model, aktif, createdAt: new Date().toISOString() });
+  toast('✅ Güncellendi');
+  loadVehicles();
+}
+
+async function deleteVehicle(id, plaka) {
+  if (!confirm(`${plaka} silinsin mi?`)) return;
+  await fbDelete(`arac_takip/araclar/${id}`);
+  toast('Araç silindi');
+  loadVehicles();
+}
+
+// ══ MERKEZ MAĞAZA ═════════════════════════════════════════════
+async function loadStore() {
+  const data = await fbGet('arac_takip/merkez_magaza');
+  if (data) {
+    document.getElementById('sAd').value    = data.ad     || '';
+    document.getElementById('sLat').value   = data.lat    || '';
+    document.getElementById('sLng').value   = data.lng    || '';
+    document.getElementById('sRadius').value= data.yaklasma_m || 500;
+    document.getElementById('sAktif').value = data.aktif === false ? 'false' : 'true';
+    document.getElementById('storeStatus').textContent = 'Son kayıt: ' + (data.guncelleme || '—');
+  }
+}
+
+async function saveStore() {
+  const lat = parseFloat(document.getElementById('sLat').value);
+  const lng = parseFloat(document.getElementById('sLng').value);
+  if (!lat || !lng) { toast('Koordinat girin', 'err'); return; }
+  await fbPut('arac_takip/merkez_magaza', {
+    ad:         document.getElementById('sAd').value || 'Piano Deri Merkez',
+    lat, lng,
+    yaklasma_m: parseInt(document.getElementById('sRadius').value) || 500,
+    aktif:      document.getElementById('sAktif').value !== 'false',
+    guncelleme: new Date().toLocaleString('tr-TR')
+  });
+  toast('✅ Merkez Mağaza kaydedildi');
+  loadStore();
+}
+
+function openGoogleMaps(type, key) {
+  let lat, lng;
+  if (type === 'store') {
+    lat = document.getElementById('sLat').value;
+    lng = document.getElementById('sLng').value;
+  } else {
+    lat = document.getElementById(`hlat_${key}`)?.value;
+    lng = document.getElementById(`hlng_${key}`)?.value;
+  }
+  if (!lat || !lng) { toast('Önce koordinat girin', 'err'); return; }
+  window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+}
+
+// ══ UYARILAR ══════════════════════════════════════════════════
+async function loadAlerts() {
+  const data = await fbGet('arac_takip/uyarilar');
+  const list = data ? Object.entries(data).filter(([k,v])=>v&&v.mesaj) : [];
+  list.sort((a,b) => new Date(b[1].zaman||0) - new Date(a[1].zaman||0));
+
+  const unread = list.filter(([,v]) => !v.okundu).length;
+  const total  = list.length;
+  const byType = {};
+  list.forEach(([,v]) => { byType[v.tip] = (byType[v.tip]||0)+1; });
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-box"><div class="num">${total}</div><div class="lbl">TOPLAM</div></div>
+    <div class="stat-box"><div class="num" style="color:#fbbf24">${unread}</div><div class="lbl">OKUNMADI</div></div>
+    <div class="stat-box"><div class="num" style="color:#4ade80">${byType['MAGAZA_YAKIN']||0}</div><div class="lbl">MAĞAZA</div></div>`;
+
+  if (!list.length) { document.getElementById('alertList').innerHTML = '<div style="color:#888;padding:20px">Uyarı yok.</div>'; return; }
+
+  document.getElementById('alertList').innerHTML = list.map(([id,v]) => {
+    const t = v.zaman ? new Date(v.zaman).toLocaleString('tr-TR') : '—';
+    const tipIcon = v.tip === 'MAGAZA_YAKIN' ? '🏬' : v.tip === 'OTEL_YAKIN' ? '🏨' : '📍';
+    return `<div class="alert-item ${v.okundu?'':'unread'}">
+      <div class="alert-dot"></div>
+      <div style="flex:1">
+        <div style="font-size:13px">${tipIcon} ${v.mesaj||'—'}</div>
+        <div style="font-size:11px;color:#888;margin-top:3px">${t}</div>
+      </div>
+      ${!v.okundu ? `<button class="btn-dark btn-sm" onclick="markRead('${id}')">✓</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function markRead(id) {
+  await fbPut(`arac_takip/uyarilar/${id}/okundu`, true);
+  loadAlerts();
+}
+
+async function markAllRead() {
+  const data = await fbGet('arac_takip/uyarilar');
+  if (!data) return;
+  const updates = {};
+  Object.keys(data).forEach(k => { if (!data[k].okundu) updates[`arac_takip/uyarilar/${k}/okundu`] = true; });
+  for (const [path, val] of Object.entries(updates)) await fbPut(path, val);
+  toast('Tümü okundu işaretlendi');
+  loadAlerts();
+}
+
+async function clearOldAlerts() {
+  if (!confirm('24 saatten eski uyarılar silinsin mi?')) return;
+  const data = await fbGet('arac_takip/uyarilar');
+  if (!data) return;
+  const cutoff = Date.now() - 24*60*60*1000;
+  let count = 0;
+  for (const [id, v] of Object.entries(data)) {
+    if (new Date(v.zaman||0).getTime() < cutoff) {
+      await fbDelete(`arac_takip/uyarilar/${id}`);
+      count++;
+    }
+  }
+  toast(`${count} uyarı silindi`);
+  loadAlerts();
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = type === 'err' ? '#ef4444' : 'var(--gold,#c9a84c)';
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// ── Init ───────────────────────────────────────────────────────
+function initAll() { loadHotels(); }
+</script>
+</body>
+</html>

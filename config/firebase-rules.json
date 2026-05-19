@@ -1,0 +1,38 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+
+    "arac_takip": {
+      ".read": true,
+      ".write": true,
+
+      "konumlar": {
+        ".read": true,
+        ".write": true,
+        "$plaka": {
+          ".validate": "newData.hasChildren(['lat','lng','durum','guncelleme'])"
+        }
+      },
+      "araclar": {
+        ".read": true,
+        ".write": true
+      },
+      "otel_konumlar": {
+        ".read": true,
+        ".write": true
+      },
+      "merkez_magaza": {
+        ".read": true,
+        ".write": true
+      },
+      "uyarilar": {
+        ".read": true,
+        ".write": true,
+        "$id": {
+          ".validate": "newData.hasChildren(['plaka','tip','mesaj','zaman'])"
+        }
+      }
+    }
+  }
+}
