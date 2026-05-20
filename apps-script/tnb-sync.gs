@@ -13,7 +13,7 @@ const TNB_USER     = 'kayaderiwb';
 const TNB_PASS     = '1234';
 
 // ── Firebase Bağlantısı ──────────────────────────────────────────
-const FB_URL = 'https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app';
+const FB_URL = 'https://chattakip-32c31-default-rtdb.europe-west1.firebasedatabase.app';
 
 // ── Uyarı Tekrar Süresi (dakika) ─────────────────────────────────
 const ALERT_COOLDOWN_MIN = 10;
