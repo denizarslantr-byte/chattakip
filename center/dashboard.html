@@ -559,9 +559,9 @@ function _buildTrackingUI(container, FB_BASE) {
 
   async function loadStatic() {
     const [defs, otels, merkez] = await Promise.all([
-      fbGet('arac_takip/araclar'),
-      fbGet('arac_takip/otel_konumlar'),
-      fbGet('arac_takip/merkez_magaza')
+      fbGet('aracTakip/araclar'),
+      fbGet('aracTakip/otelKonumlari'),
+      fbGet('aracTakip/ayarlar/merkezMagaza')
     ]);
     _vehicleDefs   = defs   || {};
     _hotelKonumlar = otels  || {};
@@ -595,10 +595,10 @@ function _buildTrackingUI(container, FB_BASE) {
 
   // ── Canlı konum dinle (SSE) ─────────────────────────────────
   function startSSE() {
-    const sse = new EventSource(`${FB_BASE}/arac_takip/konumlar.json`);
+    const sse = new EventSource(`${FB_BASE}/aracTakip/sonKonumlar.json`);
     sse.addEventListener('put',   e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderCars(d.data); } catch(x){} });
     sse.addEventListener('patch', e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderCars(d.data); } catch(x){} });
-    const sseU = new EventSource(`${FB_BASE}/arac_takip/uyarilar.json`);
+    const sseU = new EventSource(`${FB_BASE}/aracTakip/uyarilar.json`);
     sseU.addEventListener('put', e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderAlerts(d.data); } catch(x){} });
   }
 
@@ -682,7 +682,7 @@ function _buildTrackingUI(container, FB_BASE) {
     unread.forEach(([id,v])=>{ if(!_shownAlerts.has(id)){ _shownAlerts.add(id); showToast((v.tip==='MAGAZA_YAKIN'?'🏬':'🏨')+' '+(v.mesaj||'Uyarı')); } });
   }
 
-  window.tkRefresh = async function() { await loadStatic(); const d = await fbGet('arac_takip/konumlar'); if(d) renderCars(d); };
+  window.tkRefresh = async function() { await loadStatic(); const d = await fbGet('aracTakip/sonKonumlar'); if(d) renderCars(d); };
   window._tkMap = map;
   window._tkMarkers = _markers;
 
