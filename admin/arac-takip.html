@@ -7,176 +7,199 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0d0d0d;--panel:#111;--panel2:#1a1a1a;--gold:#c9a84c;--gold2:#e4b84e;--text:#e8e0d0;--text2:#888;--red:#ef4444;--green:#4ade80;--yellow:#fbbf24;--blue:#60a5fa;}
+:root{--bg:#0d0d0d;--panel:#111;--p2:#1a1a1a;--gold:#c9a84c;--text:#e8e0d0;--t2:#888;--red:#ef4444;--grn:#4ade80;--ylw:#fbbf24;--blu:#60a5fa;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-/* ── Top ── */
-#topBar{height:46px;background:var(--panel);border-bottom:1px solid #2a2a2a;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;}
-.tb-logo{color:var(--gold);font-size:13px;font-weight:700;letter-spacing:2px;}
-.tb-subtitle{font-size:10px;color:#444;letter-spacing:1px;text-transform:uppercase;}
-.tb-spacer{flex:1;}
-#liveStatus{display:flex;align-items:center;gap:5px;font-size:11px;color:#555;}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
-.live-dot.off{background:var(--red);}
+#topBar{height:48px;background:var(--panel);border-bottom:1px solid #222;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;}
+.tb-logo{color:var(--gold);font-size:22px;font-weight:700;letter-spacing:3px;}
+.tb-sub{font-size:10px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-top:1px;}
+#liveWrap{display:flex;align-items:center;gap:6px;font-size:11px;color:#555;margin-left:auto;}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--grn);}
+.ldot.off{background:var(--red);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.live-dot.on{animation:pulse 1.5s infinite;}
-.btn{background:var(--panel2);border:1px solid #333;color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;transition:border-color .15s;}
+.ldot.on{animation:pulse 1.5s infinite;}
+.btn{background:var(--p2);border:1px solid #333;color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;transition:border-color .15s;}
 .btn:hover{border-color:var(--gold);}
 .btn-gold{background:var(--gold);color:#000;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;}
 .btn-red{background:#7f1d1d;color:#fca5a5;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;}
-/* ── Tab nav ── */
-#nav{height:40px;background:var(--panel);border-bottom:1px solid #1e1e1e;display:flex;align-items:center;padding:0 12px;gap:4px;flex-shrink:0;}
-.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text2);padding:8px 16px;cursor:pointer;font-size:12px;transition:all .15s;}
+.btn-blue{background:#1e3a5f;color:var(--blu);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;}
+.btn-sm{padding:4px 9px;font-size:11px;}
+#nav{height:42px;background:var(--panel);border-bottom:1px solid #1e1e1e;display:flex;align-items:center;padding:0 14px;gap:3px;flex-shrink:0;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);padding:9px 16px;cursor:pointer;font-size:12px;transition:all .15s;}
 .tab:hover{color:var(--text);}
 .tab.active{border-bottom-color:var(--gold);color:var(--gold);}
-.nav-link{margin-left:auto;font-size:11px;color:var(--text2);cursor:pointer;text-decoration:none;padding:4px 10px;border:1px solid #333;border-radius:5px;}
-.nav-link:hover{color:var(--text);border-color:#555;}
-/* ── Main ── */
+#lastUpd{margin-left:auto;font-size:10px;color:#444;}
 #main{flex:1;display:flex;min-height:0;}
-/* ── Left panel ── */
-#leftCol{width:260px;background:var(--panel);border-right:1px solid #1e1e1e;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
-#carListHead{padding:10px 12px 6px;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
-#carListHead h3{font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:6px;}
-#filterInput{background:#0d0d0d;border:1px solid #2a2a2a;color:var(--text);padding:5px 10px;border-radius:5px;font-size:12px;width:100%;}
-#filterInput:focus{outline:none;border-color:var(--gold);}
-.stats-row{display:flex;border:1px solid #1e1e1e;border-radius:5px;overflow:hidden;margin-top:6px;}
-.s-box{flex:1;text-align:center;padding:4px 0;border-right:1px solid #1e1e1e;}
-.s-box:last-child{border:none;}
-.s-box .n{font-size:16px;font-weight:700;color:var(--gold);}
-.s-box.g .n{color:var(--green);}
-.s-box.r .n{color:var(--red);}
-.s-box .l{font-size:9px;color:#444;text-transform:uppercase;}
-#carList{flex:1;overflow-y:auto;padding:8px;}
-.car-card{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s;position:relative;}
-.car-card:hover{border-color:#333;}
-.car-card.mv{border-left:3px solid var(--green);}
-.car-card.st{border-left:3px solid var(--yellow);}
-.car-card.al{border-left:3px solid var(--red);background:#1a0505;}
-.cc-top{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-.cc-plate{font-size:13px;font-weight:700;letter-spacing:1px;}
-.cc-badge{font-size:10px;padding:2px 7px;border-radius:99px;margin-left:auto;font-weight:600;}
-.cc-badge.mv{background:#14532d;color:var(--green);}
-.cc-badge.st{background:#713f12;color:var(--yellow);}
-.cc-badge.al{background:#7f1d1d;color:#fca5a5;}
-.cc-detail{font-size:10px;color:var(--text2);margin-bottom:2px;}
-.cc-metrics{display:flex;gap:8px;font-size:11px;color:#666;}
-.cc-dist{font-size:10px;color:#555;margin-top:2px;}
-.cc-warn{position:absolute;top:6px;right:6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;}
-/* ── Alerts strip ── */
-#alertStrip{max-height:72px;overflow-y:auto;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
-.al-row{display:flex;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #0d0d0d;}
+/* LEFT */
+#leftCol{width:270px;background:var(--panel);border-right:1px solid #1e1e1e;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+#clHead{padding:10px 12px 7px;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
+#clHead h3{font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:7px;}
+#filterBox{background:#0d0d0d;border:1px solid #2a2a2a;color:var(--text);padding:5px 10px;border-radius:5px;font-size:12px;width:100%;outline:none;}
+#filterBox:focus{border-color:var(--gold);}
+.srow{display:flex;border:1px solid #1e1e1e;border-radius:5px;overflow:hidden;margin-top:7px;}
+.sb{flex:1;text-align:center;padding:4px 0;border-right:1px solid #1e1e1e;}
+.sb:last-child{border:none;}
+.sb .n{font-size:16px;font-weight:700;color:var(--gold);}
+.sb.g .n{color:var(--grn);}
+.sb.r .n{color:var(--red);}
+.sb .l{font-size:9px;color:#444;text-transform:uppercase;}
+#alerts{max-height:70px;overflow-y:auto;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
+.al{display:flex;gap:6px;align-items:center;padding:5px 10px;border-bottom:1px solid #0d0d0d;}
 .al-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .al-msg{font-size:11px;flex:1;}
-.al-time{font-size:10px;color:#444;flex-shrink:0;}
-/* ── Map ── */
-#mapWrap{flex:1;position:relative;}
+.al-t{font-size:10px;color:#444;}
+#carList{flex:1;overflow-y:auto;padding:7px;}
+.cc{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s;position:relative;}
+.cc:hover{border-color:#333;}
+.cc.mv{border-left:3px solid var(--grn);}
+.cc.st{border-left:3px solid var(--ylw);}
+.cc.al{border-left:3px solid var(--red);background:#1a0505;}
+.cc-top{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.cc-pl{font-size:13px;font-weight:700;letter-spacing:1px;}
+.cc-bd{font-size:10px;padding:2px 7px;border-radius:99px;margin-left:auto;font-weight:600;}
+.cc-bd.mv{background:#14532d;color:var(--grn);}
+.cc-bd.st{background:#713f12;color:var(--ylw);}
+.cc-bd.al{background:#7f1d1d;color:#fca5a5;}
+.cc-det{font-size:10px;color:var(--t2);margin-bottom:2px;}
+.cc-met{display:flex;gap:8px;font-size:11px;color:#666;}
+.cc-dist{font-size:10px;color:#555;margin-top:2px;}
+.cc-warn{position:absolute;top:6px;right:6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;}
+#footKm{padding:6px 12px;border-top:1px solid #1e1e1e;font-size:10px;color:#444;display:flex;justify-content:space-between;flex-shrink:0;}
+/* MAP */
+#mapWrap{flex:1;position:relative;min-width:0;}
 #map{position:absolute;inset:0;z-index:0;}
 #mapBar{position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,.88);border-top:1px solid #1e1e1e;padding:5px 12px;font-size:11px;color:#555;display:flex;gap:16px;z-index:5;}
-/* ── Right panel ── */
-#rightCol{width:260px;background:var(--panel);border-left:1px solid #1e1e1e;overflow-y:auto;flex-shrink:0;}
+/* RIGHT */
+#rightCol{width:270px;background:var(--panel);border-left:1px solid #1e1e1e;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;}
 .rp{padding:12px;border-bottom:1px solid #1e1e1e;}
-.rp-title{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.rp-t{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
 .warn-box{background:#1a0505;border:1px solid #7f1d1d;border-radius:6px;padding:10px;margin-bottom:8px;}
-.warn-box h4{font-size:13px;color:#ef4444;margin-bottom:4px;}
+.warn-box h4{font-size:13px;color:var(--red);margin-bottom:4px;}
 .warn-box p{font-size:11px;color:#fca5a5;}
-.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.sg{background:#0d0d0d;border-radius:6px;padding:8px;text-align:center;}
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sg{background:#0d0d0d;border-radius:6px;padding:7px;text-align:center;}
 .sg .v{font-size:18px;font-weight:700;color:var(--gold);}
 .sg .l{font-size:9px;color:#444;text-transform:uppercase;}
-/* ── Tab panels ── */
-.tab-panel{display:none;padding:16px;height:100%;overflow-y:auto;}
-.tab-panel.active{display:block;}
+/* TAB PANELS */
+.tp{display:none;padding:16px;height:100%;overflow-y:auto;flex:1;}
+.tp.show{display:block;}
 /* Forms */
-.form-card{background:var(--panel2);border:1px solid #2a2a2a;border-radius:8px;padding:14px;margin-bottom:12px;}
-.form-card h3{font-size:13px;color:var(--gold);margin-bottom:12px;}
-.field-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
-.field-row label{font-size:11px;color:var(--text2);min-width:110px;}
-input,select,textarea{background:#0d0d0d;border:1px solid #2a2a2a;color:var(--text);padding:7px 11px;border-radius:5px;font-size:12px;outline:none;flex:1;}
-input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+.fcard{background:var(--p2);border:1px solid #2a2a2a;border-radius:8px;padding:14px;margin-bottom:14px;}
+.fcard h3{font-size:13px;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.frow label{font-size:11px;color:var(--t2);min-width:115px;}
+input,select{background:#0d0d0d;border:1px solid #2a2a2a;color:var(--text);padding:7px 11px;border-radius:5px;font-size:12px;outline:none;flex:1;}
+input:focus,select:focus{border-color:var(--gold);}
+/* Table */
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{text-align:left;padding:7px 10px;color:var(--text2);border-bottom:1px solid #1e1e1e;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
-.tbl td{padding:8px 10px;border-bottom:1px solid #0d0d0d;}
+.tbl th{text-align:left;padding:7px 10px;color:var(--t2);border-bottom:1px solid #1e1e1e;font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.tbl td{padding:8px 10px;border-bottom:1px solid #0d0d0d;vertical-align:middle;}
 .tbl tr:hover td{background:#0d0d0d;}
 .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;}
-.badge-green{background:#14532d;color:var(--green);}
-.badge-red{background:#7f1d1d;color:#fca5a5;}
-.badge-yellow{background:#713f12;color:var(--yellow);}
+.bg{background:#14532d;color:var(--grn);}
+.br{background:#7f1d1d;color:#fca5a5;}
+.by{background:#713f12;color:var(--ylw);}
+/* Test Modal */
+#testModal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;display:none;align-items:center;justify-content:center;}
+#testModal.open{display:flex;}
+#testBox{background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:24px;width:500px;max-width:90vw;}
+#testBox h3{color:var(--gold);margin-bottom:16px;font-size:15px;}
+#testLog{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;padding:12px;font-size:11px;color:var(--t2);min-height:120px;max-height:260px;overflow-y:auto;font-family:monospace;line-height:1.6;white-space:pre-wrap;}
+.tlog-ok{color:var(--grn);}
+.tlog-err{color:var(--red);}
+.tlog-info{color:var(--blu);}
+.tlog-warn{color:var(--ylw);}
 /* Map markers */
-.cm-icon{background:var(--green);color:#000;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.7);border:1.5px solid rgba(255,255,255,.15);}
-.cm-icon.st{background:var(--yellow);}
-.cm-icon.al{background:var(--red);color:#fff;}
-.store-ic,.hotel-ic{font-size:18px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.8));}
-/* Toast */
-#toast{position:fixed;top:16px;right:20px;background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:10px 18px;border-radius:8px;font-size:12px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px;}
+.cm{background:var(--grn);color:#000;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.7);border:1.5px solid rgba(255,255,255,.15);}
+.cm.st{background:var(--ylw);}
+.cm.al{background:var(--red);color:#fff;}
+.stic,.htic{font-size:18px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.8));}
 /* Login */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:100;}
-.login-box{background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:36px;min-width:280px;text-align:center;}
-.login-box h2{color:var(--gold);font-size:17px;margin-bottom:20px;}
-.login-box input{font-size:20px;letter-spacing:8px;text-align:center;margin-bottom:14px;}
-.info-box{background:#111;border:1px solid #333;border-radius:6px;padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px;}
-.info-box b{color:var(--gold);}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:100;}
+.lb{background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:36px;min-width:280px;text-align:center;}
+.lb h2{color:var(--gold);font-size:17px;margin-bottom:20px;}
+.lb input{font-size:20px;letter-spacing:8px;text-align:center;margin-bottom:14px;}
+.ibox{background:#111;border:1px solid #333;border-radius:6px;padding:10px 12px;font-size:11px;color:var(--t2);line-height:1.7;margin-bottom:12px;}
+.ibox b{color:var(--gold);}
+#toast{position:fixed;top:16px;right:20px;background:var(--p2);border:1px solid var(--gold);color:var(--text);padding:10px 18px;border-radius:8px;font-size:12px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px;}
 </style>
 </head>
 <body>
 
 <!-- Login -->
-<div id="loginOverlay" class="overlay">
-  <div class="login-box">
+<div id="loginOv" class="ov">
+  <div class="lb">
     <h2>🚗 Admin Araç Takip</h2>
-    <input type="password" id="pinInput" placeholder="Admin PIN" maxlength="8" id="pinInput">
+    <input type="password" id="pinIn" placeholder="Admin PIN" maxlength="8">
     <button class="btn-gold" style="width:100%;margin-bottom:10px" onclick="doLogin()">Giriş</button>
     <p id="pinErr" style="color:var(--red);font-size:12px;display:none">Hatalı PIN</p>
+  </div>
+</div>
+
+<!-- Test Modal -->
+<div id="testModal">
+  <div id="testBox">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <h3 style="margin:0">🔌 TNB Cihaz Test</h3>
+      <span id="testPlakaBadge" style="background:#1e3a5f;color:var(--blu);padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700"></span>
+      <button class="btn btn-sm" style="margin-left:auto" onclick="closeTest()">✕ Kapat</button>
+    </div>
+    <div id="testLog">Test başlatılıyor…</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn-gold" onclick="runTest()">▶ Tekrar Test Et</button>
+      <span id="testStatus" style="font-size:11px;color:var(--t2);align-self:center"></span>
+    </div>
   </div>
 </div>
 
 <!-- Top Bar -->
 <div id="topBar">
   <div>
-    <div class="tb-logo">P PIANO DERİ</div>
-    <div class="tb-subtitle">Admin Araç Takip</div>
+    <div class="tb-logo">P</div>
   </div>
-  <div class="tb-spacer"></div>
-  <div id="liveStatus"><div class="live-dot on" id="liveDot"></div><span id="liveText">Bağlanıyor…</span></div>
+  <div style="margin-left:4px">
+    <div style="color:var(--gold);font-size:13px;font-weight:700;letter-spacing:2px">PIANO DERİ</div>
+    <div class="tb-sub">Admin · Araç Takip</div>
+  </div>
+  <div style="flex:1;font-size:11px;color:#444;margin-left:8px">Bu bölüm admin ve merkez kullanıcıda çalışır.</div>
+  <div id="liveWrap"><div class="ldot on" id="ldot"></div><span id="liveText">Bağlanıyor…</span></div>
   <button class="btn" onclick="forceRefresh()">↺ Yenile</button>
-  <button class="btn" onclick="window.location='admin.html'">← Admin</button>
+  <button class="btn" onclick="window.location='../center/dashboard.html'">Merkez</button>
+  <button class="btn" onclick="window.location='admin.html'">← Admin Paneli</button>
 </div>
 
 <!-- Nav -->
 <div id="nav">
-  <button class="tab active" onclick="switchTab('harita')">🗺 Harita</button>
-  <button class="tab" onclick="switchTab('araclar')">🚗 Araçlar</button>
-  <button class="tab" onclick="switchTab('oteller')">🏨 Otel Koordinatları</button>
-  <button class="tab" onclick="switchTab('eslestir')">🔗 Plaka Eşleştirme</button>
-  <button class="tab" onclick="switchTab('ayarlar')">⚙ Ayarlar</button>
-  <span id="lastUpd" style="margin-left:auto;font-size:10px;color:#444"></span>
+  <button class="tab active" data-tab="harita"   onclick="switchTab(this,'harita')">🗺 Harita</button>
+  <button class="tab"        data-tab="araclar"  onclick="switchTab(this,'araclar')">🚗 Araçlar</button>
+  <button class="tab"        data-tab="oteller"  onclick="switchTab(this,'oteller')">🏨 Otel Koordinatları</button>
+  <button class="tab"        data-tab="eslestir" onclick="switchTab(this,'eslestir')">🔗 Plaka Eşleştirme</button>
+  <button class="tab"        data-tab="ayarlar"  onclick="switchTab(this,'ayarlar')">⚙ Ayarlar</button>
+  <span id="lastUpd"></span>
 </div>
 
 <!-- Main -->
 <div id="main">
 
-  <!-- ══ HARITA TAB ══════════════════════════════════════════ -->
+  <!-- ═══ HARITA TAB ════════════════════════════════════════════ -->
   <div id="tp-harita" style="flex:1;display:flex;min-height:0;">
-
-    <!-- Sol -->
     <div id="leftCol">
-      <div id="carListHead">
+      <div id="clHead">
         <h3>ARAÇLAR <span id="carCount" style="font-size:10px;color:#444;font-weight:400"></span></h3>
-        <input type="text" id="filterInput" placeholder="Plaka ara…" oninput="filterCars()">
-        <div class="stats-row">
-          <div class="s-box g"><div class="n" id="s_mv">0</div><div class="l">Hareket</div></div>
-          <div class="s-box"><div class="n" id="s_st">0</div><div class="l">Bekliyor</div></div>
-          <div class="s-box r"><div class="n" id="s_al">0</div><div class="l">Uyarı</div></div>
-          <div class="s-box"><div class="n" id="s_tot">0</div><div class="l">Toplam</div></div>
+        <input type="text" id="filterBox" placeholder="Plaka ara…" oninput="filterCars()">
+        <div class="srow">
+          <div class="sb g"><div class="n" id="s_mv">0</div><div class="l">Hareket</div></div>
+          <div class="sb"><div class="n" id="s_st">0</div><div class="l">Bekliyor</div></div>
+          <div class="sb r"><div class="n" id="s_al">0</div><div class="l">Uyarı</div></div>
+          <div class="sb"><div class="n" id="s_tot">0</div><div class="l">Toplam</div></div>
         </div>
       </div>
-      <div id="alertStrip"></div>
+      <div id="alerts"></div>
       <div id="carList"><div style="color:#444;padding:16px;text-align:center;font-size:12px">Yükleniyor…</div></div>
-      <div style="padding:6px 12px;border-top:1px solid #1e1e1e;font-size:10px;color:#444;display:flex;justify-content:space-between;">
+      <div id="footKm">
         <span>📏 <b id="tot_km" style="color:var(--gold)">0</b> km</span>
-        <span id="foot_time"></span>
+        <span id="foot_t"></span>
       </div>
     </div>
-
-    <!-- Harita -->
     <div id="mapWrap">
       <div id="map"></div>
       <div id="mapBar">
@@ -185,114 +208,149 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);}
         <span style="margin-left:auto" id="mapUpd"></span>
       </div>
     </div>
-
-    <!-- Sağ -->
     <div id="rightCol">
       <div class="rp">
-        <div class="rp-title">Yaklaşma Uyarısı</div>
+        <div class="rp-t">⚠ Yaklaşma Uyarısı</div>
         <div id="warnBox" style="color:#444;font-size:12px">Uyarı yok</div>
       </div>
       <div class="rp">
-        <div class="rp-title">Günlük Özet</div>
-        <div class="sum-grid">
-          <div class="sg"><div class="v" id="rp_mv">0</div><div class="l">Hareketli</div></div>
-          <div class="sg"><div class="v" id="rp_cust">0</div><div class="l">Müşteri Var</div></div>
-          <div class="sg"><div class="v" id="rp_near">0</div><div class="l">Yakın</div></div>
-          <div class="sg"><div class="v" id="rp_km">0</div><div class="l">Top.KM</div></div>
+        <div class="rp-t">📊 Günlük Özet</div>
+        <div class="sg-grid">
+          <div class="sg"><div class="v" id="sg_mv">0</div><div class="l">Hareketli</div></div>
+          <div class="sg"><div class="v" id="sg_cust">0</div><div class="l">Araç sayısı</div></div>
+          <div class="sg"><div class="v" id="sg_near">0</div><div class="l">Yakın</div></div>
+          <div class="sg"><div class="v" id="sg_km">0</div><div class="l">Top.KM</div></div>
         </div>
       </div>
-      <div class="rp">
-        <div class="rp-title">Son Uyarılar</div>
+      <div class="rp" style="flex:1;overflow-y:auto">
+        <div class="rp-t">Son Uyarılar</div>
         <div id="rp_alerts" style="font-size:11px;color:#444">—</div>
       </div>
     </div>
   </div>
 
-  <!-- ══ ARAÇLAR TAB ════════════════════════════════════════ -->
-  <div id="tp-araclar" class="tab-panel">
-    <div class="form-card">
-      <h3>+ Yeni Araç Ekle</h3>
-      <div class="field-row"><label>Kısa Plaka (Rezervasyonda)</label><input type="text" id="va_kisa" placeholder="07ABC946" style="text-transform:uppercase"></div>
-      <div class="field-row"><label>TNB Araç/Plaka</label><input type="text" id="va_tnb" placeholder="34 BFT 445"></div>
-      <div class="field-row"><label>Marka/Model</label><input type="text" id="va_model" placeholder="Mercedes Sprinter 16+1"></div>
-      <div class="field-row"><label>Şoför</label><input type="text" id="va_sofor" placeholder="Opsiyonel"></div>
-      <button class="btn-gold" onclick="addArac()">Kaydet</button>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Kısa Plaka</th><th>TNB Plaka</th><th>Model</th><th>Şoför</th><th>Durum</th><th>İşlem</th></tr></thead>
-      <tbody id="aracTbl"><tr><td colspan="6" style="color:#444;text-align:center;padding:20px">Yükleniyor…</td></tr></tbody>
-    </table>
-  </div>
-
-  <!-- ══ OTEL KOORDİNATLARI TAB ═════════════════════════════ -->
-  <div id="tp-oteller" class="tab-panel">
-    <div class="info-box">
-      <b>💡 Google Maps'ten koordinat alma:</b><br>
-      maps.google.com → Otele sağ tıkla → İlk satırdaki koordinatları kopyala<br>
-      Örn: <b>36.576012, 30.556234</b> → İlk = Enlem, İkinci = Boylam
-    </div>
-    <div id="otelList"><div style="color:#444;padding:20px">Yükleniyor…</div></div>
-  </div>
-
-  <!-- ══ PLAKA EŞLEŞTİRME TAB ══════════════════════════════ -->
-  <div id="tp-eslestir" class="tab-panel">
-    <div class="info-box">
-      <b>TNB'den gelen plaka/cihaz adı</b> ile sistemdeki rezervasyon plakasını eşleştirir.<br>
-      Böylece müşteri içerideyken araç konumu doğru rezervasyona bağlanır.
-    </div>
-    <div class="form-card">
-      <h3>🔗 Plaka Eşleştirme</h3>
-      <div class="field-row"><label>TNB Araç / Plaka</label><input type="text" id="pe_tnb" placeholder="TNB plakası"></div>
-      <div class="field-row"><label>Sistem Plaka</label><input type="text" id="pe_sys" placeholder="Rezervasyondaki plaka"></div>
-      <div class="field-row"><label>TNB Cihaz ID</label><input type="text" id="pe_cid" placeholder="Opsiyonel (1073664722)"></div>
-      <div class="field-row"><label>Şoför</label><input type="text" id="pe_sof" placeholder="Opsiyonel"></div>
+  <!-- ═══ ARAÇLAR TAB ═══════════════════════════════════════════ -->
+  <div id="tp-araclar" class="tp">
+    <div class="fcard">
+      <h3>🚗 Yeni Araç Ekle</h3>
+      <div class="frow"><label>Kısa Plaka (Rezervasyonda)</label><input id="va_k" placeholder="07ABC946" style="text-transform:uppercase;max-width:160px"></div>
+      <div class="frow"><label>TNB Araç / Plaka</label><input id="va_t" placeholder="34 BFT 445"></div>
+      <div class="frow"><label>TNB Cihaz ID</label><input id="va_c" placeholder="1073664722" type="text"></div>
+      <div class="frow"><label>Marka / Model</label><input id="va_m" placeholder="Mercedes Sprinter 16+1"></div>
+      <div class="frow"><label>Şoför</label><input id="va_s" placeholder="Opsiyonel"></div>
       <div style="display:flex;gap:8px">
-        <button class="btn-gold" onclick="addEslestir()">🔗 Eşleştir</button>
-        <button class="btn" onclick="clearEslestirForm()">Temizle</button>
+        <button class="btn-gold" onclick="addArac()">+ Araç Kaydet</button>
+        <button class="btn" onclick="clearAracForm()">Temizle</button>
       </div>
     </div>
-    <table class="tbl">
-      <thead><tr><th>TNB Araç</th><th>Sistem Plaka</th><th>Cihaz ID</th><th>Şoför</th><th>İşlem</th></tr></thead>
-      <tbody id="eslestirTbl"><tr><td colspan="5" style="color:#444;text-align:center;padding:20px">Yükleniyor…</td></tr></tbody>
-    </table>
+    <div class="fcard" style="padding:0;overflow:hidden">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Kısa Plaka</th>
+            <th>TNB Plaka</th>
+            <th>TNB Cihaz ID</th>
+            <th>Model</th>
+            <th>Şoför</th>
+            <th>Durum</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="aracTbl">
+          <tr><td colspan="7" style="color:#444;text-align:center;padding:20px">Yükleniyor…</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- ══ AYARLAR TAB ════════════════════════════════════════ -->
-  <div id="tp-ayarlar" class="tab-panel">
-    <div class="info-box" style="border-color:#7f1d1d;background:#1a0505;color:#fca5a5">
-      Bu sürüm Google Maps kullanmaz. Harita OpenStreetMap + Leaflet ile ücretsiz çalışır.<br>
-      Firebase bilgileri <b>config/firebase.js</b> dosyasındadır.
+  <!-- ═══ OTEL KOORDİNATLARI TAB ════════════════════════════════ -->
+  <div id="tp-oteller" class="tp">
+    <div class="ibox">
+      <b>💡 Google Maps'ten koordinat alma:</b><br>
+      maps.google.com → Otele sağ tıkla → İlk satırdaki koordinatları kopyala<br>
+      Örn: <b>36.576012, 30.556234</b> → İlk = Enlem (LAT), İkinci = Boylam (LNG)
     </div>
-
-    <div class="form-card" style="margin-top:12px">
-      <h3>Mağaza ve Bölge</h3>
-      <div class="field-row"><label>Mağaza LAT</label><input type="number" id="cfg_slat" placeholder="36.5979" step="0.0001"></div>
-      <div class="field-row"><label>Mağaza LNG</label><input type="number" id="cfg_slng" placeholder="30.5636" step="0.0001"></div>
-      <div class="field-row"><label>Bölge Merkezi LAT</label><input type="number" id="cfg_blat" placeholder="36.5979" step="0.0001"></div>
-      <div class="field-row"><label>Bölge Merkezi LNG</label><input type="number" id="cfg_blng" placeholder="30.5636" step="0.0001"></div>
+    <div class="fcard">
+      <h3>+ Otel Ekle / Düzenle</h3>
+      <div class="frow"><label>Otel Adı</label><input id="oa_ad" placeholder="AKKA ALİNDA OTEL"></div>
+      <div class="frow"><label>Enlem (LAT)</label><input type="number" id="oa_lat" step="0.000001" placeholder="36.5760"></div>
+      <div class="frow"><label>Boylam (LNG)</label><input type="number" id="oa_lng" step="0.000001" placeholder="30.5560"></div>
+      <div class="frow"><label>Yakınlık (metre)</label><input type="number" id="oa_rad" value="300" style="max-width:100px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-gold" onclick="saveOtelManual()">💾 Kaydet</button>
+        <button class="btn" onclick="clearOtelForm()">Temizle</button>
+      </div>
     </div>
+    <div id="otelList"><div style="color:#444;padding:16px">Yükleniyor…</div></div>
+  </div>
 
-    <div class="form-card">
-      <h3>TNB Mobil Web Servis</h3>
-      <div class="field-row"><label>Web Servis Linki</label><input type="text" id="cfg_url" placeholder="https://ws.ats.tnbmobil.com.tr/webservis.asmx"></div>
-      <div class="field-row"><label>Firma Kodu</label><input type="text" id="cfg_firm" placeholder="3029"></div>
-      <div class="field-row"><label>Kullanıcı Adı</label><input type="text" id="cfg_user" placeholder="kayaderiwb"></div>
-      <div class="field-row"><label>Şifre</label><input type="password" id="cfg_pass" placeholder="••••"></div>
-      <div class="field-row"><label>Firebase Function URL</label><input type="text" id="cfg_fbfn" placeholder="https://chattakip-api.onrender.com"></div>
-      <div class="field-row"><label>Yenileme Saniyesi</label><input type="number" id="cfg_intv" placeholder="60" style="max-width:100px"></div>
+  <!-- ═══ PLAKA EŞLEŞTİRME TAB ══════════════════════════════════ -->
+  <div id="tp-eslestir" class="tp">
+    <div class="ibox">
+      <b>TNB'den gelen plaka/cihaz adı</b> ile sistemdeki rezervasyon plakasını eşleştirir.<br>
+      Eşleştirme yapıldığında <b>aynı anda Araçlar listesine de eklenir</b> — haritada görünür.
     </div>
-
-    <div class="form-card">
-      <h3>Uyarı</h3>
-      <div class="field-row"><label>Yaklaşma Mesafesi KM</label><input type="number" id="cfg_dist" placeholder="1" step="0.1" style="max-width:100px"></div>
+    <div class="fcard">
+      <h3>🔗 Plaka Eşleştir</h3>
+      <div class="frow"><label>TNB Araç / Plaka</label><input id="pe_t" placeholder="34 BFT 445"></div>
+      <div class="frow"><label>Sistem Plaka (Rezervasyonda)</label><input id="pe_s" placeholder="445 veya 07ABC946"></div>
+      <div class="frow"><label>TNB Cihaz ID</label><input id="pe_c" placeholder="1073664722"></div>
+      <div class="frow"><label>Şoför</label><input id="pe_sf" placeholder="Opsiyonel"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-gold" onclick="addEslestir()">🔗 Eşleştir</button>
+        <button class="btn" onclick="clearEslForm()">Temizle</button>
+      </div>
     </div>
+    <div class="fcard" style="padding:0;overflow:hidden">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>TNB Araç</th>
+            <th>Sistem Plaka</th>
+            <th>Cihaz ID</th>
+            <th>Şoför</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="eslTbl">
+          <tr><td colspan="5" style="color:#444;text-align:center;padding:20px">Yükleniyor…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-    <div style="display:flex;gap:10px;align-items:center">
+  <!-- ═══ AYARLAR TAB ════════════════════════════════════════════ -->
+  <div id="tp-ayarlar" class="tp">
+    <div class="ibox" style="border-color:#7f1d1d;background:#1a0505;color:#fca5a5">
+      Bu sürüm Google Maps kullanmaz. Harita <b>OpenStreetMap + Leaflet</b> ile ücretsiz çalışır.<br>
+      Demo modu <b>kalıcı olarak kapalıdır</b>.
+    </div>
+    <div class="fcard">
+      <h3>🏬 Mağaza ve Bölge</h3>
+      <div class="frow"><label>Mağaza LAT</label><input type="number" id="c_slat" placeholder="36.5979" step="0.0001"></div>
+      <div class="frow"><label>Mağaza LNG</label><input type="number" id="c_slng" placeholder="30.5636" step="0.0001"></div>
+      <div class="frow"><label>Bölge Merkezi LAT</label><input type="number" id="c_blat" placeholder="36.5979" step="0.0001"></div>
+      <div class="frow"><label>Bölge Merkezi LNG</label><input type="number" id="c_blng" placeholder="30.5636" step="0.0001"></div>
+    </div>
+    <div class="fcard">
+      <h3>📡 TNB Mobil Web Servis</h3>
+      <div class="frow"><label>Web Servis Linki</label><input id="c_url" placeholder="https://ws.ats.tnbmobil.com.tr/webservis.asmx"></div>
+      <div class="frow"><label>Firma Kodu</label><input id="c_firm" placeholder="3029" style="max-width:120px"></div>
+      <div class="frow"><label>Kullanıcı Adı</label><input id="c_user" placeholder="kayaderiwb"></div>
+      <div class="frow"><label>Şifre</label><input type="password" id="c_pass" placeholder="••••"></div>
+      <div class="frow"><label>Firebase Function URL</label><input id="c_fbfn" placeholder="https://chattakip-api.onrender.com"></div>
+      <div class="frow"><label>Yenileme Saniyesi</label><input type="number" id="c_intv" placeholder="60" style="max-width:100px"></div>
+    </div>
+    <div class="fcard">
+      <h3>🔔 Uyarı</h3>
+      <div class="frow"><label>Yaklaşma Mesafesi (KM)</label><input type="number" id="c_dist" placeholder="1" step="0.1" style="max-width:100px"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn-gold" onclick="saveSettings()">💾 Ayarları Kaydet</button>
-      <button class="btn" onclick="testTNB()">TNB Test Et</button>
-      <button class="btn" onclick="forceRefresh()">Haritayı Yenile</button>
+      <button class="btn" onclick="testTNBGlobal()">📡 TNB Bağlantı Test</button>
+      <button class="btn" onclick="forceRefresh()">↺ Haritayı Yenile</button>
     </div>
-    <div id="testResult" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
+    <div id="globalTestResult" style="margin-top:12px;font-size:12px;color:var(--t2);background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;padding:10px;display:none;font-family:monospace;white-space:pre-wrap"></div>
   </div>
 
 </div>
@@ -302,73 +360,47 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ════════════════════════════════════════════════════════════════
-// CONFIG — Firebase URL (mevcut projenin firebase.js'inden alır)
+// FIREBASE — mevcut projenin URL'si
 // ════════════════════════════════════════════════════════════════
-const FB_BASE = 'https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app';
+const FB = 'https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app';
 
 // ════════════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════════════
 function doLogin() {
-  const pin = document.getElementById('pinInput').value.trim();
+  const pin = document.getElementById('pinIn').value.trim();
   if (!pin) return;
   fbGet('adminPin').then(stored => {
     const ok = stored ? String(stored) === pin : pin === '1907';
-    if (ok) {
-      sessionStorage.setItem('admin_gps_pin', pin);
-      document.getElementById('loginOverlay').style.display = 'none';
-      init();
-    } else {
-      document.getElementById('pinErr').style.display = 'block';
-    }
+    if (ok) { sessionStorage.setItem('adm_gps', pin); document.getElementById('loginOv').style.display='none'; init(); }
+    else { document.getElementById('pinErr').style.display='block'; }
   }).catch(() => {
-    // Firebase erişilemiyor, basit PIN kontrolü
-    if (pin === '1907' || pin.length >= 4) {
-      sessionStorage.setItem('admin_gps_pin', pin);
-      document.getElementById('loginOverlay').style.display = 'none';
-      init();
-    }
+    sessionStorage.setItem('adm_gps', pin);
+    document.getElementById('loginOv').style.display='none';
+    init();
   });
 }
-document.getElementById('pinInput').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-
-// ════════════════════════════════════════════════════════════════
-// TAB
-// ════════════════════════════════════════════════════════════════
-let _curTab = 'harita';
-function switchTab(name) {
-  _curTab = name;
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  ['harita','araclar','oteller','eslestir','ayarlar'].forEach(t => {
-    const el = document.getElementById(`tp-${t}`);
-    if (!el) return;
-    if (t === 'harita') { el.style.display = t===name ? 'flex' : 'none'; }
-    else { el.style.display = t===name ? 'block' : 'none'; el.className = t===name ? 'tab-panel active' : 'tab-panel'; }
-  });
-  if (name === 'araclar')   loadAracTbl();
-  if (name === 'oteller')   loadOtelList();
-  if (name === 'eslestir')  loadEslestirTbl();
-  if (name === 'ayarlar')   loadSettings();
-}
+document.getElementById('pinIn').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 
 // ════════════════════════════════════════════════════════════════
 // FIREBASE CRUD
 // ════════════════════════════════════════════════════════════════
 async function fbGet(path) {
-  const r = await fetch(`${FB_BASE}/${path}.json`);
-  const t = await r.text();
-  return t === 'null' ? null : JSON.parse(t);
+  try {
+    const r = await fetch(`${FB}/${path}.json`);
+    const t = await r.text();
+    return t === 'null' ? null : JSON.parse(t);
+  } catch(e) { return null; }
 }
 async function fbPut(path, data) {
-  await fetch(`${FB_BASE}/${path}.json`, {
-    method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
-  });
+  try {
+    await fetch(`${FB}/${path}.json`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  } catch(e) { console.error('fbPut:', e); }
 }
 async function fbDelete(path) {
-  await fetch(`${FB_BASE}/${path}.json`, {method:'DELETE'});
+  try { await fetch(`${FB}/${path}.json`, {method:'DELETE'}); } catch(e){}
 }
-function slugify(s) {
+function slug(s) {
   return String(s||'').toLowerCase()
     .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
     .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
@@ -376,91 +408,209 @@ function slugify(s) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// MAP INIT
+// TAB
 // ════════════════════════════════════════════════════════════════
-let map, _markers={}, _storeMarker=null, _hotelMarkers={}, _radiusCircles=[];
-let _vehicleDefs={}, _merkezMagaza=null, _hotelKonumlar={}, _eslestirMap={};
-let _mapFitted=false;
-
-function initMap() {
-  const cfg = getSettings();
-  const clat = cfg.blat || cfg.slat || 36.576;
-  const clng = cfg.blng || cfg.slng || 30.556;
-  map = L.map('map', { zoomControl:true, attributionControl:true }).setView([clat, clng], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom:19,
-    attribution:'© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-  }).addTo(map);
-  L.control.scale({imperial:false}).addTo(map);
-  map.on('mousemove', e => {
-    document.getElementById('coordDisp').textContent =
-      `${e.latlng.lat.toFixed(4)}°K, ${e.latlng.lng.toFixed(4)}°D`;
+function switchTab(el, name) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tp-harita').style.display = name==='harita' ? 'flex' : 'none';
+  ['araclar','oteller','eslestir','ayarlar'].forEach(t => {
+    const tp = document.getElementById('tp-'+t);
+    if (tp) { tp.style.display = t===name ? 'block' : 'none'; }
   });
+  if (name==='araclar')  loadAracTbl();
+  if (name==='oteller')  loadOtelList();
+  if (name==='eslestir') loadEslTbl();
+  if (name==='ayarlar')  loadSettings();
+  if (name==='harita')   setTimeout(()=>map&&map.invalidateSize(), 200);
 }
 
 // ════════════════════════════════════════════════════════════════
 // SETTINGS
 // ════════════════════════════════════════════════════════════════
-function getSettings() {
-  try { return JSON.parse(localStorage.getItem('piano_gps_cfg') || '{}'); } catch(e){ return {}; }
-}
+function getCfg() { try { return JSON.parse(localStorage.getItem('piano_gps_cfg')||'{}'); } catch(e){return{};} }
 function saveSettings() {
   const cfg = {
-    slat:  parseFloat(document.getElementById('cfg_slat').value) || 36.5979,
-    slng:  parseFloat(document.getElementById('cfg_slng').value) || 30.5636,
-    blat:  parseFloat(document.getElementById('cfg_blat').value) || 36.5979,
-    blng:  parseFloat(document.getElementById('cfg_blng').value) || 30.5636,
-    tnb_url:  document.getElementById('cfg_url').value.trim(),
-    firma:    document.getElementById('cfg_firm').value.trim(),
-    user:     document.getElementById('cfg_user').value.trim(),
-    pass:     document.getElementById('cfg_pass').value.trim(),
-    fbfn:     document.getElementById('cfg_fbfn').value.trim(),
-    interval: parseInt(document.getElementById('cfg_intv').value) || 60,
-    dist_km:  parseFloat(document.getElementById('cfg_dist').value) || 1,
+    slat: parseFloat(document.getElementById('c_slat').value)||36.5979,
+    slng: parseFloat(document.getElementById('c_slng').value)||30.5636,
+    blat: parseFloat(document.getElementById('c_blat').value)||36.5979,
+    blng: parseFloat(document.getElementById('c_blng').value)||30.5636,
+    tnb_url: document.getElementById('c_url').value.trim(),
+    firma:   document.getElementById('c_firm').value.trim(),
+    user:    document.getElementById('c_user').value.trim(),
+    pass:    document.getElementById('c_pass').value.trim(),
+    fbfn:    document.getElementById('c_fbfn').value.trim(),
+    interval: parseInt(document.getElementById('c_intv').value)||60,
+    dist_km:  parseFloat(document.getElementById('c_dist').value)||1,
   };
   localStorage.setItem('piano_gps_cfg', JSON.stringify(cfg));
-  // Mağaza Firebase'e de kaydet
   fbPut('arac_takip/merkez_magaza', {
-    ad: 'Piano Deri Merkez', lat: cfg.slat, lng: cfg.slng,
-    yaklasma_m: Math.round(cfg.dist_km * 1000), aktif: true
+    ad:'Piano Deri Merkez', lat:cfg.slat, lng:cfg.slng,
+    yaklasma_m:Math.round(cfg.dist_km*1000), aktif:true
   });
   toast('✅ Ayarlar kaydedildi');
   loadStatic();
 }
 function loadSettings() {
-  const cfg = getSettings();
-  document.getElementById('cfg_slat').value  = cfg.slat  || '';
-  document.getElementById('cfg_slng').value  = cfg.slng  || '';
-  document.getElementById('cfg_blat').value  = cfg.blat  || '';
-  document.getElementById('cfg_blng').value  = cfg.blng  || '';
-  document.getElementById('cfg_url').value   = cfg.tnb_url || 'https://ws.ats.tnbmobil.com.tr/webservis.asmx';
-  document.getElementById('cfg_firm').value  = cfg.firma || '3029';
-  document.getElementById('cfg_user').value  = cfg.user  || 'kayaderiwb';
-  document.getElementById('cfg_pass').value  = cfg.pass  || '';
-  document.getElementById('cfg_fbfn').value  = cfg.fbfn  || '';
-  document.getElementById('cfg_intv').value  = cfg.interval || 60;
-  document.getElementById('cfg_dist').value  = cfg.dist_km || 1;
+  const c = getCfg();
+  document.getElementById('c_slat').value  = c.slat||'';
+  document.getElementById('c_slng').value  = c.slng||'';
+  document.getElementById('c_blat').value  = c.blat||'';
+  document.getElementById('c_blng').value  = c.blng||'';
+  document.getElementById('c_url').value   = c.tnb_url||'https://ws.ats.tnbmobil.com.tr/webservis.asmx';
+  document.getElementById('c_firm').value  = c.firma||'3029';
+  document.getElementById('c_user').value  = c.user||'kayaderiwb';
+  document.getElementById('c_pass').value  = c.pass||'';
+  document.getElementById('c_fbfn').value  = c.fbfn||'';
+  document.getElementById('c_intv').value  = c.interval||60;
+  document.getElementById('c_dist').value  = c.dist_km||1;
 }
 
-async function testTNB() {
-  const cfg = getSettings();
-  const fbfn = cfg.fbfn;
-  if (!fbfn) { document.getElementById('testResult').innerHTML = '<span style="color:var(--red)">Önce Firebase Function URL giriniz.</span>'; return; }
-  document.getElementById('testResult').innerHTML = '⏳ Test ediliyor…';
-  try {
-    const r = await fetch(`${fbfn}/test-tnb`);
-    const d = await r.json();
-    document.getElementById('testResult').innerHTML = d.ok
-      ? `<span style="color:var(--green)">✅ TNB bağlantısı başarılı — ${d.count||'?'} araç bulundu</span>`
-      : `<span style="color:var(--red)">❌ TNB hatası: ${d.error||JSON.stringify(d)}</span>`;
-  } catch(e) {
-    document.getElementById('testResult').innerHTML = `<span style="color:var(--red)">❌ ${e.message}</span>`;
+// ════════════════════════════════════════════════════════════════
+// TNB BAĞLANTI TEST — Global
+// ════════════════════════════════════════════════════════════════
+async function testTNBGlobal() {
+  const res = document.getElementById('globalTestResult');
+  res.style.display = 'block';
+  res.textContent = '⏳ Firebase\'deki araç tanımları kontrol ediliyor…\n';
+
+  const araclar = await fbGet('arac_takip/araclar');
+  const eslestir = await fbGet('arac_takip/eslestirmeler');
+  const konumlar = await fbGet('arac_takip/konumlar');
+
+  const aList = araclar ? Object.values(araclar).filter(a=>a&&a.kisa_plaka) : [];
+  const eList = eslestir ? Object.values(eslestir).filter(e=>e&&e.tnb_plaka) : [];
+  const kList = konumlar ? Object.keys(konumlar) : [];
+
+  res.textContent += `\n📋 Araçlar tablosunda: ${aList.length} araç\n`;
+  aList.forEach(a => {
+    const hasPos = kList.includes(a.kisa_plaka);
+    res.textContent += `  ${hasPos?'✅':'❌'} ${a.kisa_plaka} | TNB: ${a.tnb_plaka||'—'} | ID: ${a.cihaz_id||'YOK'} | Haritada: ${hasPos?'EVET':'HAYIR'}\n`;
+  });
+
+  res.textContent += `\n🔗 Eşleştirmeler: ${eList.length} kayıt\n`;
+  eList.forEach(e => {
+    const synced = aList.some(a=>a.kisa_plaka===e.sys_plaka);
+    res.textContent += `  ${synced?'✅':'⚠️'} ${e.tnb_plaka} → ${e.sys_plaka} | ID: ${e.cihaz_id||'YOK'} | Araçlara aktarıldı: ${synced?'EVET':'HAYIR'}\n`;
+  });
+
+  res.textContent += `\n🗺 Firebase\'de konum kaydı olan araçlar: ${kList.length}\n`;
+  kList.forEach(k => res.textContent += `  📍 ${k}\n`);
+
+  const cfg = getCfg();
+  if (cfg.fbfn) {
+    res.textContent += `\n📡 Firebase Function test ediliyor: ${cfg.fbfn}\n`;
+    try {
+      const r = await fetch(`${cfg.fbfn}/test-tnb`, {signal: AbortSignal.timeout(8000)});
+      const d = await r.json();
+      res.textContent += d.ok
+        ? `✅ TNB bağlantısı BAŞARILI — ${d.count||'?'} araç bulundu\n`
+        : `❌ TNB hatası: ${d.error||JSON.stringify(d)}\n`;
+    } catch(e) {
+      res.textContent += `❌ Function URL erişilemedi: ${e.message}\n`;
+      res.textContent += `   → Apps Script sync kullanıyorsanız bu normaldir.\n`;
+    }
+  } else {
+    res.textContent += `\n⚠️ Firebase Function URL ayarlanmamış — Apps Script sync modunda çalışıyor.\n`;
   }
+
+  res.textContent += `\n— Test tamamlandı ${new Date().toLocaleTimeString('tr-TR')} —`;
 }
 
 // ════════════════════════════════════════════════════════════════
-// STATIC DATA (mağaza, otel, araç tanımları, eşleştirme)
+// TNB TEST — Tek araç için (modal)
 // ════════════════════════════════════════════════════════════════
+let _testPlaka = '', _testTnb = '', _testCid = '';
+function openTest(plaka, tnb_plaka, cihaz_id) {
+  _testPlaka = plaka; _testTnb = tnb_plaka; _testCid = cihaz_id;
+  document.getElementById('testPlakaBadge').textContent = plaka;
+  document.getElementById('testModal').classList.add('open');
+  runTest();
+}
+function closeTest() { document.getElementById('testModal').classList.remove('open'); }
+async function runTest() {
+  const log = document.getElementById('testLog');
+  const sta = document.getElementById('testStatus');
+  log.textContent = '';
+  const ts = s => log.textContent += s + '\n';
+
+  ts(`🔍 Araç: ${_testPlaka}`);
+  ts(`   TNB Plaka: ${_testTnb||'—'}`);
+  ts(`   Cihaz ID:  ${_testCid||'YOK ⚠️'}`);
+  ts('');
+
+  // 1. Firebase'de konum var mı?
+  const konumlar = await fbGet('arac_takip/konumlar');
+  const pos = konumlar && konumlar[_testPlaka];
+  if (pos) {
+    ts(`✅ Firebase'de konum mevcut`);
+    ts(`   📍 ${pos.lat}, ${pos.lng}`);
+    ts(`   ⚡ Hız: ${pos.hiz||0} km/s`);
+    ts(`   🕐 ${pos.guncelleme||'—'}`);
+    sta.textContent = '✅ Aktif';
+    sta.style.color = 'var(--grn)';
+  } else {
+    ts(`❌ Firebase'de konum YOK`);
+    ts(`   Olası nedenler:`);
+    ts(`   1. Apps Script trigger çalışmıyor`);
+    ts(`   2. TNB plaka eşleşmiyor: "${_testTnb}"`);
+    if (!_testCid) ts(`   3. Cihaz ID girilmemiş!`);
+    sta.textContent = '❌ Konum yok';
+    sta.style.color = 'var(--red)';
+  }
+
+  ts('');
+
+  // 2. Araç tanımı kontrolü
+  const araclar = await fbGet('arac_takip/araclar');
+  const def = araclar ? Object.values(araclar).find(a=>a&&a.kisa_plaka===_testPlaka) : null;
+  if (def) {
+    ts(`✅ Araç tanımı bulundu`);
+    ts(`   kisa_plaka: ${def.kisa_plaka}`);
+    ts(`   tnb_plaka:  ${def.tnb_plaka||'EKSİK ⚠️'}`);
+    ts(`   cihaz_id:   ${def.cihaz_id||'EKSİK ⚠️'}`);
+    if (!def.tnb_plaka) ts(`\n   ⚠️ TNB plaka eksik — Apps Script eşleştiremez!`);
+    if (!def.cihaz_id)  ts(`   ⚠️ Cihaz ID eksik — ID ile eşleştirme yapılamaz!`);
+  } else {
+    ts(`❌ Araç tanımı bulunamadı (plaka: ${_testPlaka})`);
+  }
+
+  // 3. Firebase Function üzerinden test
+  const cfg = getCfg();
+  if (cfg.fbfn) {
+    ts(`\n📡 TNB servis test: ${cfg.fbfn}`);
+    try {
+      const r = await fetch(`${cfg.fbfn}/vehicle-pos?cid=${encodeURIComponent(_testCid)}&tnb=${encodeURIComponent(_testTnb)}`, {signal:AbortSignal.timeout(8000)});
+      const d = await r.json();
+      ts(d.found ? `✅ TNB'de araç bulundu: ${JSON.stringify(d.pos)}` : `❌ TNB'de araç bulunamadı`);
+    } catch(e) {
+      ts(`⚠️ Function URL erişilemedi (${e.message})`);
+      ts(`   Apps Script sync kullanıyorsanız normaldir.`);
+    }
+  }
+
+  ts(`\n— ${new Date().toLocaleTimeString('tr-TR')} —`);
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAP
+// ════════════════════════════════════════════════════════════════
+let map, _markers={}, _storeM=null, _hotelMs={}, _circles=[];
+let _defs={}, _merkez=null, _otels={}, _esles={};
+let _fitted=false;
+
+function initMap() {
+  const c = getCfg();
+  map = L.map('map', {zoomControl:true}).setView([c.blat||36.576, c.blng||30.556], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19,
+    attribution:'© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  L.control.scale({imperial:false}).addTo(map);
+  map.on('mousemove', e => document.getElementById('coordDisp').textContent =
+    `${e.latlng.lat.toFixed(4)}°K, ${e.latlng.lng.toFixed(4)}°D`);
+}
+
 async function loadStatic() {
   const [defs, otels, merkez, esles] = await Promise.all([
     fbGet('arac_takip/araclar'),
@@ -468,221 +618,182 @@ async function loadStatic() {
     fbGet('arac_takip/merkez_magaza'),
     fbGet('arac_takip/eslestirmeler')
   ]);
-  _vehicleDefs   = defs   || {};
-  _hotelKonumlar = otels  || {};
-  _merkezMagaza  = merkez || null;
+  _defs = defs||{}; _otels = otels||{}; _merkez = merkez||null;
 
-  // Eşleştirme haritası: tnb_plaka → kisa_plaka
-  _eslestirMap = {};
-  if (esles) Object.values(esles).forEach(e => {
-    if (e && e.tnb_plaka && e.sys_plaka) _eslestirMap[e.tnb_plaka] = e.sys_plaka;
-  });
-  // Araç tanımından da eşleştirme
-  if (defs) Object.values(defs).forEach(a => {
-    if (a && a.tnb_plaka && a.kisa_plaka) _eslestirMap[a.tnb_plaka] = a.kisa_plaka;
-  });
+  // Eşleştirme haritası
+  _esles = {};
+  if (esles) Object.values(esles).forEach(e=>{ if(e&&e.tnb_plaka&&e.sys_plaka) _esles[e.tnb_plaka]=e.sys_plaka; });
+  if (defs) Object.values(defs).forEach(a=>{ if(a&&a.tnb_plaka&&a.kisa_plaka) _esles[a.tnb_plaka]=a.kisa_plaka; });
 
-  // Mağaza marker
-  _radiusCircles.forEach(c => c.remove()); _radiusCircles = [];
-  if (_storeMarker) _storeMarker.remove();
-  if (_merkezMagaza && _merkezMagaza.lat) {
-    _storeMarker = L.marker([_merkezMagaza.lat, _merkezMagaza.lng], {
-      icon: L.divIcon({html:'<div class="store-ic">🏬</div>', className:'', iconAnchor:[9,18]})
-    }).addTo(map).bindPopup(`<b>${_merkezMagaza.ad||'Mağaza'}</b><br>${_merkezMagaza.yaklasma_m||1000}m uyarı`);
-    _radiusCircles.push(L.circle([_merkezMagaza.lat,_merkezMagaza.lng],{
-      radius:_merkezMagaza.yaklasma_m||1000, color:'#c9a84c', fillColor:'#c9a84c', fillOpacity:.04, weight:1, dashArray:'4'
+  // Çemberler temizle
+  _circles.forEach(c=>c.remove()); _circles=[];
+
+  // Mağaza
+  if (_storeM) _storeM.remove();
+  if (_merkez&&_merkez.lat) {
+    _storeM = L.marker([_merkez.lat,_merkez.lng], {
+      icon:L.divIcon({html:'<div class="stic">🏬</div>', className:'', iconAnchor:[9,18]})
+    }).addTo(map).bindPopup(`<b>${_merkez.ad||'Mağaza'}</b><br>${_merkez.yaklasma_m||1000}m uyarı`);
+    _circles.push(L.circle([_merkez.lat,_merkez.lng], {
+      radius:_merkez.yaklasma_m||1000, color:'#c9a84c', fillColor:'#c9a84c', fillOpacity:.04, weight:1.5, dashArray:'5'
     }).addTo(map));
   }
-  // Otel marker'lar
-  Object.values(_hotelMarkers).forEach(m=>m.remove()); _hotelMarkers={};
-  Object.entries(_hotelKonumlar).forEach(([key,ok])=>{
-    if(!ok||!ok.lat) return;
-    _hotelMarkers[key] = L.marker([ok.lat,ok.lng],{
-      icon:L.divIcon({html:'<div class="hotel-ic">🏨</div>', className:'', iconAnchor:[8,16]})
-    }).addTo(map).bindPopup(`<b>${ok.otel_adi||key}</b>`);
-    _radiusCircles.push(L.circle([ok.lat,ok.lng],{
-      radius:ok.yaklasma_m||300, color:'#60a5fa', fillColor:'#60a5fa', fillOpacity:.04, weight:1, dashArray:'4'
+
+  // Oteller
+  Object.values(_hotelMs).forEach(m=>m.remove()); _hotelMs={};
+  Object.entries(_otels).forEach(([k,o])=>{
+    if(!o||!o.lat) return;
+    _hotelMs[k] = L.marker([o.lat,o.lng], {
+      icon:L.divIcon({html:'<div class="htic">🏨</div>', className:'', iconAnchor:[8,16]})
+    }).addTo(map).bindPopup(`<b>${o.otel_adi||k}</b><br>${o.yaklasma_m||300}m`);
+    _circles.push(L.circle([o.lat,o.lng], {
+      radius:o.yaklasma_m||300, color:'#60a5fa', fillColor:'#60a5fa', fillOpacity:.04, weight:1, dashArray:'4'
     }).addTo(map));
   });
 }
 
 // ════════════════════════════════════════════════════════════════
-// CANLI KONUM — Firebase SSE (DEMO MOD YOK)
+// CANLI KONUM — SSE (Demo modu YOK)
 // ════════════════════════════════════════════════════════════════
-let _sse = null, _sseAlert = null;
+let _sse=null, _sseA=null, _lastK={}, _shownA=new Set();
 
 function startSSE() {
   if (_sse) _sse.close();
-  _sse = new EventSource(`${FB_BASE}/arac_takip/konumlar.json`);
-  _sse.addEventListener('put',   e => { try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
-  _sse.addEventListener('patch', e => { try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
-  _sse.onerror = () => {
-    setLive(false);
-    setTimeout(startSSE, 10000);
-  };
+  _sse = new EventSource(`${FB}/arac_takip/konumlar.json`);
+  _sse.addEventListener('put',   e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
+  _sse.addEventListener('patch', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
+  _sse.onerror = ()=>{ setLive(false); setTimeout(startSSE,12000); };
 
-  if (_sseAlert) _sseAlert.close();
-  _sseAlert = new EventSource(`${FB_BASE}/arac_takip/uyarilar.json`);
-  _sseAlert.addEventListener('put', e => { try{const d=JSON.parse(e.data);if(d&&d.data)renderAlertPanel(d.data);}catch(x){} });
-}
-
-// Firebase Function URL üzerinden TNB çekme (trigger)
-async function triggerSync() {
-  const cfg = getSettings();
-  if (!cfg.fbfn) return;
-  try {
-    await fetch(`${cfg.fbfn}/sync`, {method:'POST'});
-  } catch(e) { /* sessiz hata */ }
+  if (_sseA) _sseA.close();
+  _sseA = new EventSource(`${FB}/arac_takip/uyarilar.json`);
+  _sseA.addEventListener('put', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderAlerts(d.data);}catch(x){} });
 }
 
 function setLive(on) {
-  const dot = document.getElementById('liveDot');
-  const txt = document.getElementById('liveText');
-  dot.className = 'live-dot ' + (on ? 'on' : 'off');
-  txt.textContent = on ? 'CANLI' : 'Bağlantı kesildi';
+  document.getElementById('ldot').className   = 'ldot '+(on?'on':'off');
+  document.getElementById('liveText').textContent = on ? 'CANLI' : 'Bağlantı kesildi';
 }
 
-// ════════════════════════════════════════════════════════════════
-// ARAÇ RENDER
-// ════════════════════════════════════════════════════════════════
-let _lastKonumlar = {}, _shownAlerts = new Set();
-
-function haversine(la1,lo1,la2,lo2){const R=6371000,p=Math.PI/180;const a=.5-Math.cos((la2-la1)*p)/2+Math.cos(la1*p)*Math.cos(la2*p)*(1-Math.cos((lo2-lo1)*p))/2;return R*2*Math.asin(Math.sqrt(a));}
+function hav(la1,lo1,la2,lo2){const R=6371000,p=Math.PI/180;const a=.5-Math.cos((la2-la1)*p)/2+Math.cos(la1*p)*Math.cos(la2*p)*(1-Math.cos((lo2-lo1)*p))/2;return R*2*Math.asin(Math.sqrt(a));}
 
 function renderCars(konumlar) {
-  _lastKonumlar = konumlar || {};
+  _lastK = konumlar||{};
   setLive(true);
   const now = new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  document.getElementById('mapUpd').textContent = '↻ ' + now;
-  document.getElementById('lastUpd').textContent = 'Son: ' + now;
-  document.getElementById('foot_time').textContent = now;
+  document.getElementById('mapUpd').textContent = '↻ '+now;
+  document.getElementById('lastUpd').textContent = 'Son: '+now;
+  document.getElementById('foot_t').textContent = now;
 
-  const list = Object.entries(_lastKonumlar).filter(([,v])=>v&&v.lat);
-  const mv = list.filter(([,v])=>v.durum==='HAREKET').length;
-  const st = list.filter(([,v])=>v.durum!=='HAREKET').length;
+  const list = Object.entries(_lastK).filter(([,v])=>v&&v.lat);
+  const cfg = getCfg();
+  const distM = (cfg.dist_km||1)*1000;
 
   // Uyarı hesapla
-  const cfg = getSettings();
-  const distM = (cfg.dist_km || 1) * 1000;
-  let warnCount = 0;
-  const warnList = [];
-
-  list.forEach(([plaka,v])=>{
-    if (_merkezMagaza&&_merkezMagaza.lat) {
-      const d = haversine(v.lat,v.lng,_merkezMagaza.lat,_merkezMagaza.lng);
-      if (d <= distM) {
-        warnCount++;
-        warnList.push({plaka, tip:'MAGAZA', dist:d, otel: null});
-      }
+  const warns = [];
+  list.forEach(([p,v])=>{
+    if(_merkez&&_merkez.lat) {
+      const d=hav(v.lat,v.lng,_merkez.lat,_merkez.lng);
+      if(d<=distM) warns.push({plaka:p,dist:d});
     }
   });
 
+  const mv = list.filter(([,v])=>v.durum==='HAREKET').length;
   document.getElementById('s_mv').textContent  = mv;
-  document.getElementById('s_st').textContent  = st;
-  document.getElementById('s_al').textContent  = warnCount;
+  document.getElementById('s_st').textContent  = list.filter(([,v])=>v.durum!=='HAREKET').length;
+  document.getElementById('s_al').textContent  = warns.length;
   document.getElementById('s_tot').textContent = list.length;
   document.getElementById('carCount').textContent = `(${list.length})`;
-  const totalKm = list.reduce((s,[,v])=>s+(parseInt(v.km)||0),0);
-  document.getElementById('tot_km').textContent = totalKm.toLocaleString('tr-TR');
-  document.getElementById('rp_mv').textContent  = mv;
-  document.getElementById('rp_near').textContent= warnCount;
-  document.getElementById('rp_km').textContent  = totalKm;
+  const tkm = list.reduce((s,[,v])=>s+(parseInt(v.km)||0),0);
+  document.getElementById('tot_km').textContent = tkm.toLocaleString('tr-TR');
+  document.getElementById('sg_mv').textContent  = mv;
+  document.getElementById('sg_cust').textContent= list.length;
+  document.getElementById('sg_near').textContent= warns.length;
+  document.getElementById('sg_km').textContent  = tkm;
 
-  // Uyarı paneli
+  // Uyarı kutusu
   const wb = document.getElementById('warnBox');
-  if (warnList.length > 0) {
-    wb.innerHTML = warnList.map(w=>`<div class="warn-box"><h4>${w.plaka}</h4><p>${_merkezMagaza.ad||'Mağaza'}<br>${Math.round(w.dist)} metre kaldı</p></div>`).join('');
-  } else { wb.innerHTML = '<div style="color:#444;font-size:12px">Uyarı yok</div>'; }
+  wb.innerHTML = warns.length
+    ? warns.map(w=>`<div class="warn-box"><h4>${w.plaka}</h4><p>${_merkez.ad||'Mağaza'}<br><b>${Math.round(w.dist)} metre</b> kaldı</p></div>`).join('')
+    : '<div style="color:#444;font-size:12px">Uyarı yok</div>';
 
-  // Sol araç listesi
-  const filter = document.getElementById('filterInput')?.value?.toLowerCase() || '';
-  const listEl = document.getElementById('carList');
+  // Araç listesi
+  const filter = (document.getElementById('filterBox')?.value||'').toLowerCase();
+  const el = document.getElementById('carList');
+
   if (!list.length) {
-    listEl.innerHTML = `<div style="color:#444;text-align:center;padding:20px;font-size:12px">
+    el.innerHTML = `<div style="color:#444;text-align:center;padding:20px;font-size:12px;line-height:1.8">
       Firebase'de konum yok.<br>
-      Apps Script sync çalışıyor mu?<br>
-      <button class="btn" style="margin-top:10px;font-size:11px" onclick="triggerSync()">⟳ Manuel Sync</button>
+      <b style="color:var(--ylw)">Araçlar</b> sekmesinden araç ekle.<br>
+      Ardından Apps Script sync bekle.<br>
+      <button class="btn btn-sm" style="margin-top:8px" onclick="triggerSync()">⟳ Manuel Sync</button>
     </div>`;
     return;
   }
 
-  const sorted = list.map(([plaka,v])=>{
-    const def = Object.values(_vehicleDefs).find(d=>d.kisa_plaka===plaka)||{};
-    let dist = null;
-    if (_merkezMagaza&&_merkezMagaza.lat) dist = haversine(v.lat,v.lng,_merkezMagaza.lat,_merkezMagaza.lng);
-    const isWarn = dist!==null && dist <= distM;
-    return {plaka,v,def,dist,isWarn};
-  }).sort((a,b)=>a.isWarn?-1:b.isWarn?1:(a.v.durum==='HAREKET'?-1:1));
+  const sorted = list.map(([p,v])=>{
+    const def = Object.values(_defs).find(d=>d&&d.kisa_plaka===p)||{};
+    const dist = _merkez&&_merkez.lat ? hav(v.lat,v.lng,_merkez.lat,_merkez.lng) : null;
+    const isW = warns.some(w=>w.plaka===p);
+    return {p,v,def,dist,isW};
+  }).sort((a,b)=>a.isW?-1:b.isW?1:(a.v.durum==='HAREKET'?-1:1));
 
-  listEl.innerHTML = sorted.filter(({plaka})=>!filter||plaka.toLowerCase().includes(filter)).map(({plaka,v,def,dist,isWarn})=>{
-    const cls = isWarn ? 'al' : v.durum==='HAREKET' ? 'mv' : 'st';
-    const bdg = isWarn
-      ? '<span class="cc-badge al">⚠ Uyarı</span>'
-      : v.durum==='HAREKET'
-        ? '<span class="cc-badge mv">Hareket</span>'
-        : '<span class="cc-badge st">Bekliyor</span>';
-    const dTxt = dist!==null ? `🏬 ${Math.round(dist)}m` : '';
-    return `<div class="car-card ${cls}" onclick="focusCar('${plaka}')">
-      ${isWarn?'<div class="cc-warn">!</div>':''}
-      <div class="cc-top"><div class="cc-plate">${plaka}</div>${bdg}</div>
-      <div class="cc-detail">${def.sofor||def.model||'—'}</div>
-      <div class="cc-metrics"><span>⚡${v.hiz||0}km/s</span><span>📏${v.km||0}km</span></div>
-      ${dTxt?`<div class="cc-dist">${dTxt} mağazaya</div>`:''}
+  el.innerHTML = sorted.filter(({p})=>!filter||p.toLowerCase().includes(filter)).map(({p,v,def,dist,isW})=>{
+    const cls = isW?'al':v.durum==='HAREKET'?'mv':'st';
+    const bdg = isW?'<span class="cc-bd al">⚠ Uyarı</span>':v.durum==='HAREKET'?'<span class="cc-bd mv">Hareket</span>':'<span class="cc-bd st">Bekliyor</span>';
+    const dt = dist!==null?`🏬 ${Math.round(dist)}m`:'';
+    return `<div class="cc ${cls}" onclick="focusCar('${p}')">
+      ${isW?'<div class="cc-warn">!</div>':''}
+      <div class="cc-top"><div class="cc-pl">${p}</div>${bdg}</div>
+      <div class="cc-det">${def.sofor||def.model||'—'}</div>
+      <div class="cc-met"><span>⚡${v.hiz||0}km/s</span><span>📏${v.km||0}km</span></div>
+      ${dt?`<div class="cc-dist">${dt} mağazaya</div>`:''}
     </div>`;
   }).join('') || '<div style="color:#444;padding:10px;font-size:11px">Eşleşen araç yok</div>';
 
-  // Harita marker'ları
-  list.forEach(([plaka,v])=>{
-    const isWarn = warnList.some(w=>w.plaka===plaka);
-    const cls = isWarn ? ' al' : v.durum==='HAREKET' ? '' : ' st';
-    const icon = L.divIcon({html:`<div class="cm-icon${cls}">${plaka}</div>`, className:'', iconAnchor:[30,10]});
-    if (_markers[plaka]) {
-      _markers[plaka].setLatLng([v.lat,v.lng]).setIcon(icon);
-    } else {
-      _markers[plaka] = L.marker([v.lat,v.lng],{icon}).addTo(map)
-        .bindPopup(`<b>${plaka}</b><br>Hız: ${v.hiz||0} km/s<br>KM: ${v.km||0}<br>${v.guncelleme||''}`);
-    }
+  // Harita marker
+  list.forEach(([p,v])=>{
+    const isW = warns.some(w=>w.plaka===p);
+    const cls = isW?' al':v.durum==='HAREKET'?'':' st';
+    const icon = L.divIcon({html:`<div class="cm${cls}">${p}</div>`, className:'', iconAnchor:[30,10]});
+    if (_markers[p]) { _markers[p].setLatLng([v.lat,v.lng]).setIcon(icon); }
+    else { _markers[p] = L.marker([v.lat,v.lng],{icon}).addTo(map).bindPopup(`<b>${p}</b><br>Hız: ${v.hiz||0} km/s<br>KM: ${v.km||0}`); }
   });
 
-  if (!_mapFitted && list.length>0) {
-    _mapFitted = true;
-    const bounds = L.latLngBounds(list.map(([,v])=>[v.lat,v.lng]));
-    if (bounds.isValid()) map.fitBounds(bounds.pad(0.25));
+  if (!_fitted && list.length) {
+    _fitted=true;
+    const b=L.latLngBounds(list.map(([,v])=>[v.lat,v.lng]));
+    if(b.isValid()) map.fitBounds(b.pad(0.25));
   }
 }
 
-function filterCars() { renderCars(_lastKonumlar); }
-function focusCar(plaka) {
-  const mk = _markers[plaka];
-  if (mk && map) { map.setView(mk.getLatLng(),16); mk.openPopup(); }
-}
+function filterCars() { renderCars(_lastK); }
+function focusCar(p) { const m=_markers[p]; if(m&&map){map.setView(m.getLatLng(),16);m.openPopup();} }
 
-function renderAlertPanel(uyarilar) {
+function renderAlerts(uyarilar) {
   const list = Object.entries(uyarilar||{}).filter(([,v])=>v&&!v.okundu)
-    .sort((a,b)=>new Date(b[1].zaman||0)-new Date(a[1].zaman||0)).slice(0,5);
-
-  // Alert strip (sol panel üstü)
-  document.getElementById('alertStrip').innerHTML = list.slice(0,3).map(([,v])=>`
-    <div class="al-row">
-      <div class="al-dot" style="background:${v.tip==='MAGAZA_YAKIN'?'#c9a84c':'#60a5fa'}"></div>
-      <div class="al-msg">${v.mesaj||'—'}</div>
-      <div class="al-time">${v.zaman?new Date(v.zaman).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):''}</div>
-    </div>`).join('');
-
+    .sort((a,b)=>new Date(b[1].zaman||0)-new Date(a[1].zaman||0)).slice(0,4);
+  document.getElementById('alerts').innerHTML = list.slice(0,3).map(([,v])=>
+    `<div class="al"><div class="al-dot" style="background:${v.tip==='MAGAZA_YAKIN'?'#c9a84c':'#60a5fa'}"></div><div class="al-msg">${v.mesaj||'—'}</div><div class="al-t">${v.zaman?new Date(v.zaman).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):''}</div></div>`
+  ).join('');
   document.getElementById('rp_alerts').innerHTML = list.length
     ? list.map(([,v])=>`<div style="padding:4px 0;border-bottom:1px solid #1e1e1e;font-size:11px">${v.tip==='MAGAZA_YAKIN'?'🏬':'🏨'} ${v.mesaj}</div>`).join('')
     : '<div style="color:#444;font-size:11px">Uyarı yok</div>';
-
-  // Yeni uyarı toast
-  list.forEach(([id,v])=>{ if(!_shownAlerts.has(id)){ _shownAlerts.add(id); toast((v.tip==='MAGAZA_YAKIN'?'🏬':'🏨')+' '+(v.mesaj||'Yeni uyarı')); } });
+  list.forEach(([id,v])=>{ if(!_shownA.has(id)){ _shownA.add(id); toast((v.tip==='MAGAZA_YAKIN'?'🏬':'🏨')+' '+(v.mesaj||'Uyarı')); } });
 }
 
 async function forceRefresh() {
   await loadStatic();
   const d = await fbGet('arac_takip/konumlar');
-  if (d) renderCars(d);
+  if(d) renderCars(d);
+  map.invalidateSize();
   await triggerSync();
-  toast('Yenilendi');
+  toast('↺ Yenilendi');
+}
+
+async function triggerSync() {
+  const c=getCfg();
+  if(!c.fbfn) return;
+  try { await fetch(`${c.fbfn}/sync`,{method:'POST'}); } catch(e){}
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -691,36 +802,64 @@ async function forceRefresh() {
 async function loadAracTbl() {
   const data = await fbGet('arac_takip/araclar');
   const list = data ? Object.entries(data).filter(([,v])=>v&&v.kisa_plaka) : [];
+  const konumlar = await fbGet('arac_takip/konumlar');
+  const kList = konumlar ? Object.keys(konumlar) : [];
+
   document.getElementById('aracTbl').innerHTML = !list.length
-    ? '<tr><td colspan="6" style="color:#444;text-align:center;padding:20px">Araç eklenmedi</td></tr>'
-    : list.map(([id,v])=>`<tr>
-        <td><b>${v.kisa_plaka||'—'}</b></td>
-        <td>${v.tnb_plaka||'—'}</td>
-        <td>${v.model||'—'}</td>
-        <td>${v.sofor||'—'}</td>
-        <td><span class="badge ${v.aktif===false?'badge-red':'badge-green'}">${v.aktif===false?'Pasif':'Aktif'}</span></td>
-        <td><button class="btn-red" onclick="delArac('${id}','${v.kisa_plaka}')">Sil</button></td>
-      </tr>`).join('');
+    ? '<tr><td colspan="7" style="color:#444;text-align:center;padding:20px">Henüz araç eklenmedi.<br>Yukarıdaki formu kullanın veya <b>Plaka Eşleştirme</b> sekmesine gidin.</td></tr>'
+    : list.map(([id,v])=>{
+        const onMap = kList.includes(v.kisa_plaka);
+        const hasCid = !!v.cihaz_id;
+        return `<tr>
+          <td><b>${v.kisa_plaka||'—'}</b></td>
+          <td>${v.tnb_plaka||'<span style="color:var(--red);font-size:11px">EKSİK</span>'}</td>
+          <td>
+            ${v.cihaz_id
+              ? `<code style="font-size:11px;color:var(--blu)">${v.cihaz_id}</code>`
+              : '<span style="color:var(--red);font-size:11px">EKSİK ⚠</span>'
+            }
+          </td>
+          <td>${v.model||'—'}</td>
+          <td>${v.sofor||'—'}</td>
+          <td>
+            <span class="badge ${v.aktif===false?'br':'bg'}">${v.aktif===false?'Pasif':'Aktif'}</span>
+            <span class="badge ${onMap?'bg':'by'}" style="margin-left:3px">${onMap?'📍 Haritada':'⏳ Bekliyor'}</span>
+          </td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="btn-blue btn-sm" onclick="openTest('${v.kisa_plaka||''}','${(v.tnb_plaka||'').replace(/'/g,"\\'")}','${v.cihaz_id||''}')">🔌 Test</button>
+            <button class="btn-red btn-sm" onclick="delArac('${id}','${v.kisa_plaka}')">Sil</button>
+          </td>
+        </tr>`;
+      }).join('');
 }
 
 async function addArac() {
-  const kisa  = document.getElementById('va_kisa').value.trim().toUpperCase();
-  const tnb   = document.getElementById('va_tnb').value.trim();
-  const model = document.getElementById('va_model').value.trim();
-  const sofor = document.getElementById('va_sofor').value.trim();
+  const kisa = document.getElementById('va_k').value.trim().toUpperCase();
+  const tnb  = document.getElementById('va_t').value.trim();
+  const cid  = document.getElementById('va_c').value.trim();
+  const mdl  = document.getElementById('va_m').value.trim();
+  const sof  = document.getElementById('va_s').value.trim();
   if (!kisa || !tnb) { toast('Kısa plaka ve TNB plaka zorunlu','err'); return; }
-  const id = 'arac_' + Date.now();
-  await fbPut(`arac_takip/araclar/${id}`, { kisa_plaka:kisa, tnb_plaka:tnb, model, sofor, aktif:true, createdAt:new Date().toISOString() });
+  if (!cid) toast('⚠️ Cihaz ID girilmedi — eşleştirme sadece plaka adıyla yapılacak','warn');
+  const id = 'arac_'+Date.now();
+  await fbPut(`arac_takip/araclar/${id}`, {
+    kisa_plaka:kisa, tnb_plaka:tnb, cihaz_id:cid, model:mdl, sofor:sof, aktif:true, createdAt:new Date().toISOString()
+  });
   toast(`✅ ${kisa} eklendi`);
-  ['va_kisa','va_tnb','va_model','va_sofor'].forEach(id=>document.getElementById(id).value='');
+  clearAracForm();
   loadAracTbl();
   loadStatic();
 }
 
+function clearAracForm() { ['va_k','va_t','va_c','va_m','va_s'].forEach(i=>document.getElementById(i).value=''); }
+
 async function delArac(id, plaka) {
-  if (!confirm(`${plaka} silinsin mi?`)) return;
+  if (!confirm(`${plaka} silinsin mi? Haritadan da kaldırılacak.`)) return;
   await fbDelete(`arac_takip/araclar/${id}`);
-  toast('Silindi'); loadAracTbl(); loadStatic();
+  await fbDelete(`arac_takip/konumlar/${plaka}`);
+  toast(`${plaka} silindi`);
+  loadAracTbl();
+  if (_markers[plaka]) { _markers[plaka].remove(); delete _markers[plaka]; }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -728,132 +867,112 @@ async function delArac(id, plaka) {
 // ════════════════════════════════════════════════════════════════
 async function loadOtelList() {
   const el = document.getElementById('otelList');
-  el.innerHTML = '<div style="color:#444;padding:16px">Yükleniyor…</div>';
-  try {
-    const apiUrl = (typeof API_URL !== 'undefined' && !API_URL.includes('BURAYA')) ? API_URL : null;
-    const apiKey = (typeof API_KEY !== 'undefined') ? API_KEY : 'PIANO_DERI_SECRET_2025';
-    let hotels = [];
-    if (apiUrl) {
-      const r = await fetch(`${apiUrl}?action=getHotels&apiKey=${apiKey}`);
-      const d = await r.json();
-      hotels = (d.hotels || []).filter(h => h && h.hotel);
-    }
-    const konumlar = await fbGet('arac_takip/otel_konumlar') || {};
-
-    if (!hotels.length && !Object.keys(konumlar).length) {
-      el.innerHTML = '<div style="color:#444;padding:16px">Otel bulunamadı. Koordinatları manuel ekleyin.</div>';
-      return;
-    }
-
-    // Manuel ekleme formu
-    el.innerHTML = `<div class="form-card" style="margin-bottom:16px"><h3>+ Otel Koordinatı Ekle</h3>
-      <div class="field-row"><label>Otel Adı</label><input type="text" id="oa_ad" placeholder="AKKA ALİNDA OTEL"></div>
-      <div class="field-row"><label>Enlem (LAT)</label><input type="number" id="oa_lat" step="0.000001" placeholder="36.5760"></div>
-      <div class="field-row"><label>Boylam (LNG)</label><input type="number" id="oa_lng" step="0.000001" placeholder="30.5560"></div>
-      <div class="field-row"><label>Yakınlık (m)</label><input type="number" id="oa_rad" value="300" style="max-width:100px"> metre</div>
-      <button class="btn-gold" onclick="saveOtelManual()">Kaydet</button>
-    </div>` +
-    (hotels.length ? hotels : Object.values(konumlar)).map(h => {
-      const ad   = h.hotel || h.otel_adi || '?';
-      const key  = slugify(ad);
-      const k    = konumlar[key];
-      const hasC = k && k.lat;
-      return `<div class="form-card">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <b>${ad}</b>
-          <span class="badge ${hasC?'badge-green':'badge-yellow'}">${hasC?'📍 Tanımlı':'⚠ Eksik'}</span>
-          ${hasC?`<span style="font-size:11px;color:#444">${k.lat.toFixed(5)}, ${k.lng.toFixed(5)}</span>`:''}
-        </div>
-        <div class="field-row"><label>Enlem (LAT)</label><input type="number" id="ol_${key}" value="${k?k.lat:''}" step="0.000001" placeholder="36.5760"></div>
-        <div class="field-row"><label>Boylam (LNG)</label><input type="number" id="on_${key}" value="${k?k.lng:''}" step="0.000001" placeholder="30.5560"></div>
-        <div class="field-row"><label>Yakınlık (m)</label><input type="number" id="or_${key}" value="${k?k.yaklasma_m||300:300}" style="max-width:100px"> metre</div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-gold" onclick="saveOtel('${key}','${ad.replace(/'/g,"\\'")}')">💾 Kaydet</button>
-          ${hasC?`<button class="btn" onclick="window.open('https://maps.google.com/?q=${k.lat},${k.lng}','_blank')">🗺 Gör</button>`:``}
-          ${hasC?`<button class="btn-red" onclick="delOtel('${key}')">Sil</button>`:''}
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = `<div style="color:var(--red)">${e.message}</div>`; }
-}
-
-async function saveOtel(key, ad) {
-  const lat = parseFloat(document.getElementById(`ol_${key}`)?.value);
-  const lng = parseFloat(document.getElementById(`on_${key}`)?.value);
-  const rad = parseInt(document.getElementById(`or_${key}`)?.value) || 300;
-  if (!lat||!lng) { toast('Koordinat girin','err'); return; }
-  await fbPut(`arac_takip/otel_konumlar/${key}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
-  toast(`✅ ${ad} kaydedildi`); loadOtelList(); loadStatic();
+  el.innerHTML = '<div style="color:#444;padding:12px">Yükleniyor…</div>';
+  const konumlar = await fbGet('arac_takip/otel_konumlar')||{};
+  const keys = Object.keys(konumlar);
+  if (!keys.length) { el.innerHTML = '<div style="color:#444;font-size:12px">Kayıtlı otel yok. Yukarıdaki formu kullanın.</div>'; return; }
+  el.innerHTML = keys.map(k=>{
+    const o = konumlar[k];
+    return `<div class="fcard">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <b>${o.otel_adi||k}</b>
+        <span class="badge bg">📍 ${o.lat?.toFixed(5)}, ${o.lng?.toFixed(5)}</span>
+        <span class="badge by" style="margin-left:auto">${o.yaklasma_m||300}m</span>
+      </div>
+      <div class="frow"><label>LAT</label><input type="number" id="ol_${k}" value="${o.lat||''}" step="0.000001"></div>
+      <div class="frow"><label>LNG</label><input type="number" id="on_${k}" value="${o.lng||''}" step="0.000001"></div>
+      <div class="frow"><label>Yakınlık (m)</label><input type="number" id="or_${k}" value="${o.yaklasma_m||300}" style="max-width:100px"></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-gold btn-sm" onclick="saveOtel('${k}','${(o.otel_adi||k).replace(/'/g,"\\'")}')">💾 Güncelle</button>
+        <button class="btn btn-sm" onclick="window.open('https://maps.google.com/?q=${o.lat},${o.lng}','_blank')">🗺 Gör</button>
+        <button class="btn-red btn-sm" onclick="delOtel('${k}')">Sil</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function saveOtelManual() {
   const ad  = document.getElementById('oa_ad').value.trim();
   const lat = parseFloat(document.getElementById('oa_lat').value);
   const lng = parseFloat(document.getElementById('oa_lng').value);
-  const rad = parseInt(document.getElementById('oa_rad').value) || 300;
+  const rad = parseInt(document.getElementById('oa_rad').value)||300;
   if (!ad||!lat||!lng) { toast('Ad ve koordinat zorunlu','err'); return; }
-  const key = slugify(ad);
-  await fbPut(`arac_takip/otel_konumlar/${key}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
-  toast(`✅ ${ad} eklendi`); loadOtelList(); loadStatic();
+  await fbPut(`arac_takip/otel_konumlar/${slug(ad)}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
+  toast(`✅ ${ad} eklendi`);
+  clearOtelForm(); loadOtelList(); loadStatic();
 }
 
-async function delOtel(key) {
+function clearOtelForm() { ['oa_ad','oa_lat','oa_lng'].forEach(i=>document.getElementById(i).value=''); }
+
+async function saveOtel(k, ad) {
+  const lat = parseFloat(document.getElementById(`ol_${k}`)?.value);
+  const lng = parseFloat(document.getElementById(`on_${k}`)?.value);
+  const rad = parseInt(document.getElementById(`or_${k}`)?.value)||300;
+  if (!lat||!lng) { toast('Koordinat girin','err'); return; }
+  await fbPut(`arac_takip/otel_konumlar/${k}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
+  toast(`✅ ${ad} güncellendi`); loadOtelList(); loadStatic();
+}
+
+async function delOtel(k) {
   if (!confirm('Koordinat silinsin mi?')) return;
-  await fbDelete(`arac_takip/otel_konumlar/${key}`);
+  await fbDelete(`arac_takip/otel_konumlar/${k}`);
   toast('Silindi'); loadOtelList(); loadStatic();
 }
 
 // ════════════════════════════════════════════════════════════════
 // PLAKA EŞLEŞTİRME
 // ════════════════════════════════════════════════════════════════
-async function loadEslestirTbl() {
+async function loadEslTbl() {
   const data = await fbGet('arac_takip/eslestirmeler');
   const list = data ? Object.entries(data).filter(([,v])=>v&&v.tnb_plaka) : [];
-  document.getElementById('eslestirTbl').innerHTML = !list.length
+  document.getElementById('eslTbl').innerHTML = !list.length
     ? '<tr><td colspan="5" style="color:#444;text-align:center;padding:20px">Eşleştirme yok</td></tr>'
     : list.map(([id,v])=>`<tr>
         <td><b>${v.tnb_plaka}</b></td>
         <td>${v.sys_plaka||'—'}</td>
-        <td><code style="font-size:10px;color:#888">${v.cihaz_id||'—'}</code></td>
+        <td><code style="font-size:11px;color:${v.cihaz_id?'var(--blu)':'var(--red)'}">${v.cihaz_id||'EKSİK ⚠'}</code></td>
         <td>${v.sofor||'—'}</td>
-        <td>
-          <button class="btn" onclick="editEslestir('${id}','${v.tnb_plaka}','${v.sys_plaka||''}','${v.cihaz_id||''}','${v.sofor||''}')">Düzelt</button>
-          <button class="btn-red" onclick="delEslestir('${id}')">Sil</button>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="editEsl('${id}','${v.tnb_plaka}','${v.sys_plaka||''}','${v.cihaz_id||''}','${v.sofor||''}')">Düzelt</button>
+          <button class="btn-red btn-sm" onclick="delEsl('${id}','${v.sys_plaka}')">Sil</button>
         </td>
       </tr>`).join('');
 }
 
 async function addEslestir() {
-  const tnb = document.getElementById('pe_tnb').value.trim();
-  const sys = document.getElementById('pe_sys').value.trim();
-  const cid = document.getElementById('pe_cid').value.trim();
-  const sof = document.getElementById('pe_sof').value.trim();
+  const tnb = document.getElementById('pe_t').value.trim();
+  const sys = document.getElementById('pe_s').value.trim();
+  const cid = document.getElementById('pe_c').value.trim();
+  const sof = document.getElementById('pe_sf').value.trim();
   if (!tnb||!sys) { toast('TNB plaka ve sistem plaka zorunlu','err'); return; }
+  if (!cid) toast('⚠️ Cihaz ID girilmedi — plaka adıyla eşleştirme yapılacak','warn');
   const id = 'esl_'+Date.now();
-  await fbPut(`arac_takip/eslestirmeler/${id}`, {tnb_plaka:tnb, sys_plaka:sys, cihaz_id:cid, sofor:sof, createdAt:new Date().toISOString()});
-  // Araç tanımına da ekle (Firebase sync için)
-  await fbPut(`arac_takip/araclar/${id}`, {kisa_plaka:sys, tnb_plaka:tnb, sofor:sof, aktif:true, createdAt:new Date().toISOString()});
-  toast(`✅ ${tnb} → ${sys} eşleştirildi`);
-  clearEslestirForm(); loadEslestirTbl(); loadStatic();
+  // Eşleştirme tablosuna kaydet
+  await fbPut(`arac_takip/eslestirmeler/${id}`, {
+    tnb_plaka:tnb, sys_plaka:sys, cihaz_id:cid, sofor:sof, createdAt:new Date().toISOString()
+  });
+  // Araçlar tablosuna da yaz — bu olmadan haritada görünmez!
+  const aracId = 'arac_esl_'+Date.now();
+  await fbPut(`arac_takip/araclar/${aracId}`, {
+    kisa_plaka:sys, tnb_plaka:tnb, cihaz_id:cid, sofor:sof, aktif:true, createdAt:new Date().toISOString()
+  });
+  toast(`✅ ${tnb} → ${sys} eşleştirildi, Araçlar listesine eklendi`);
+  clearEslForm(); loadEslTbl(); loadStatic();
 }
 
-function clearEslestirForm() {
-  ['pe_tnb','pe_sys','pe_cid','pe_sof'].forEach(id=>document.getElementById(id).value='');
-}
-
-function editEslestir(id, tnb, sys, cid, sof) {
-  document.getElementById('pe_tnb').value = tnb;
-  document.getElementById('pe_sys').value = sys;
-  document.getElementById('pe_cid').value = cid;
-  document.getElementById('pe_sof').value = sof;
-  // Düzenleme için sil + yeniden ekle
+function clearEslForm() { ['pe_t','pe_s','pe_c','pe_sf'].forEach(i=>document.getElementById(i).value=''); }
+function editEsl(id, tnb, sys, cid, sof) {
+  document.getElementById('pe_t').value  = tnb;
+  document.getElementById('pe_s').value  = sys;
+  document.getElementById('pe_c').value  = cid;
+  document.getElementById('pe_sf').value = sof;
   fbDelete(`arac_takip/eslestirmeler/${id}`);
+  switchTab(document.querySelector('[data-tab="eslestir"]'), 'eslestir');
 }
-
-async function delEslestir(id) {
+async function delEsl(id, plaka) {
   if (!confirm('Eşleştirme silinsin mi?')) return;
   await fbDelete(`arac_takip/eslestirmeler/${id}`);
-  toast('Silindi'); loadEslestirTbl(); loadStatic();
+  toast('Silindi'); loadEslTbl(); loadStatic();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -862,8 +981,8 @@ async function delEslestir(id) {
 function toast(msg, type) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.style.borderColor = type==='err' ? 'var(--red)' : 'var(--gold)';
-  el.style.opacity = '1';
+  el.style.borderColor = type==='err'?'var(--red)':type==='warn'?'var(--ylw)':'var(--gold)';
+  el.style.opacity='1';
   setTimeout(()=>el.style.opacity='0', 3500);
 }
 
@@ -874,22 +993,19 @@ function init() {
   initMap();
   loadStatic();
   startSSE();
-  // Periyodik sync tetikle
-  const cfg = getSettings();
-  const intv = (cfg.interval || 60) * 1000;
-  setInterval(triggerSync, intv);
-  setTimeout(triggerSync, 2000); // 2 sn sonra ilk sync
-  // Tab panel görünürlük
-  ['araclar','oteller','eslestir','ayarlar'].forEach(t => {
-    const el = document.getElementById(`tp-${t}`);
-    if (el) el.style.display = 'none';
+  const c = getCfg();
+  setTimeout(triggerSync, 2000);
+  setInterval(triggerSync, (c.interval||60)*1000);
+  // Tab panel başlangıç görünürlüğü
+  ['araclar','oteller','eslestir','ayarlar'].forEach(t=>{
+    const el=document.getElementById('tp-'+t);
+    if(el) el.style.display='none';
   });
 }
 
-// Sayfa yüklünce PIN kontrolü
-window.addEventListener('load', () => {
-  if (sessionStorage.getItem('admin_gps_pin')) {
-    document.getElementById('loginOverlay').style.display = 'none';
+window.addEventListener('load', ()=>{
+  if (sessionStorage.getItem('adm_gps')) {
+    document.getElementById('loginOv').style.display='none';
     init();
   }
 });
