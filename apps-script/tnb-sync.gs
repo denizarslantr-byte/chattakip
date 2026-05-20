@@ -39,13 +39,10 @@ function syncTNBToFirebase() {
     // 3. TNB plakasını kısa plakaya eşle ve Firebase'e yaz
     const konumlar = {};
     for (const tk of tnbKonumlar) {
-      const arac = aracList.find(a => {
-        const ap = String(a.tnb_plaka||'').replace(/\s/g,'').toUpperCase();
-        const tp = String(tk.plaka||'').replace(/\s/g,'').toUpperCase();
-        const ac = String(a.cihaz_id||a.device_id||'').trim();
-        const tc = String(tk.cihaz_id||tk.device_id||'').trim();
-        return (ap && tp && ap === tp) || (ac && tc && ac === tc);
-      });
+      const arac = aracList.find(a =>
+        String(a.tnb_plaka||'').replace(/\s/g,'').toUpperCase() ===
+        String(tk.plaka||'').replace(/\s/g,'').toUpperCase()
+      );
       if (!arac) continue;
       const kp = arac.kisa_plaka;
       konumlar[kp] = {
@@ -131,7 +128,6 @@ function parseTNBXml(xmlText) {
       if (!plaka || !lat || !lng) continue;
       sonuclar.push({
         plaka,
-        cihaz_id: getElText(el, 'CihazId') || getElText(el, 'CihazID') || getElText(el, 'DeviceId') || getElText(el, 'ID') || '',
         lat:  lat.replace(',', '.'),
         lng:  lng.replace(',', '.'),
         hiz:  getElText(el, 'Hiz')      || getElText(el, 'Speed')  || '0',
