@@ -442,7 +442,7 @@ function saveSettings() {
     dist_km:  parseFloat(document.getElementById('c_dist').value)||1,
   };
   localStorage.setItem('piano_gps_cfg', JSON.stringify(cfg));
-  fbPut('arac_takip/merkez_magaza', {
+  fbPut('aracTakip/ayarlar/merkezMagaza', {
     ad:'Piano Deri Merkez', lat:cfg.slat, lng:cfg.slng,
     yaklasma_m:Math.round(cfg.dist_km*1000), aktif:true
   });
@@ -472,9 +472,9 @@ async function testTNBGlobal() {
   res.style.display = 'block';
   res.textContent = '⏳ Firebase\'deki araç tanımları kontrol ediliyor…\n';
 
-  const araclar = await fbGet('arac_takip/araclar');
-  const eslestir = await fbGet('arac_takip/eslestirmeler');
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const araclar = await fbGet('aracTakip/araclar');
+  const eslestir = await fbGet('aracTakip/plakaEslesme');
+  const konumlar = await fbGet('aracTakip/sonKonumlar');
 
   const aList = araclar ? Object.values(araclar).filter(a=>a&&a.kisa_plaka) : [];
   const eList = eslestir ? Object.values(eslestir).filter(e=>e&&e.tnb_plaka) : [];
@@ -538,7 +538,7 @@ async function runTest() {
   ts('');
 
   // 1. Firebase'de konum var mı?
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const konumlar = await fbGet('aracTakip/sonKonumlar');
   const pos = konumlar && konumlar[_testPlaka];
   if (pos) {
     ts(`✅ Firebase'de konum mevcut`);
@@ -560,7 +560,7 @@ async function runTest() {
   ts('');
 
   // 2. Araç tanımı kontrolü
-  const araclar = await fbGet('arac_takip/araclar');
+  const araclar = await fbGet('aracTakip/araclar');
   const def = araclar ? Object.values(araclar).find(a=>a&&a.kisa_plaka===_testPlaka) : null;
   if (def) {
     ts(`✅ Araç tanımı bulundu`);
@@ -611,10 +611,10 @@ function initMap() {
 
 async function loadStatic() {
   const [defs, otels, merkez, esles] = await Promise.all([
-    fbGet('arac_takip/araclar'),
-    fbGet('arac_takip/otel_konumlar'),
-    fbGet('arac_takip/merkez_magaza'),
-    fbGet('arac_takip/eslestirmeler')
+    fbGet('aracTakip/araclar'),
+    fbGet('aracTakip/otelKonumlari'),
+    fbGet('aracTakip/ayarlar/merkezMagaza'),
+    fbGet('aracTakip/plakaEslesme')
   ]);
   _defs = defs||{}; _otels = otels||{}; _merkez = merkez||null;
 
@@ -657,13 +657,13 @@ let _sse=null, _sseA=null, _lastK={}, _shownA=new Set();
 
 function startSSE() {
   if (_sse) _sse.close();
-  _sse = new EventSource(`${FB}/arac_takip/konumlar.json`);
+  _sse = new EventSource(`${FB}/aracTakip/sonKonumlar.json`);
   _sse.addEventListener('put',   e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
   _sse.addEventListener('patch', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
   _sse.onerror = ()=>{ setLive(false); setTimeout(startSSE,12000); };
 
   if (_sseA) _sseA.close();
-  _sseA = new EventSource(`${FB}/arac_takip/uyarilar.json`);
+  _sseA = new EventSource(`${FB}/aracTakip/uyarilar.json`);
   _sseA.addEventListener('put', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderAlerts(d.data);}catch(x){} });
 }
 
@@ -781,7 +781,7 @@ function renderAlerts(uyarilar) {
 
 async function forceRefresh() {
   await loadStatic();
-  const d = await fbGet('arac_takip/konumlar');
+  const d = await fbGet('aracTakip/sonKonumlar');
   if(d) renderCars(d);
   map.invalidateSize();
   await triggerSync();
@@ -798,9 +798,9 @@ async function triggerSync() {
 // ARAÇ TANIMLARI
 // ════════════════════════════════════════════════════════════════
 async function loadAracTbl() {
-  const data = await fbGet('arac_takip/araclar');
+  const data = await fbGet('aracTakip/araclar');
   const list = data ? Object.entries(data).filter(([,v])=>v&&v.kisa_plaka) : [];
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const konumlar = await fbGet('aracTakip/sonKonumlar');
   const kList = konumlar ? Object.keys(konumlar) : [];
 
   document.getElementById('aracTbl').innerHTML = !list.length
@@ -840,7 +840,7 @@ async function addArac() {
   if (!kisa || !tnb) { toast('Kısa plaka ve TNB plaka zorunlu','err'); return; }
   if (!cid) toast('⚠️ Cihaz ID girilmedi — eşleştirme sadece plaka adıyla yapılacak','warn');
   const id = 'arac_'+Date.now();
-  await fbPut(`arac_takip/araclar/${id}`, {
+  await fbPut(`aracTakip/araclar/${id}`, {
     kisa_plaka:kisa, tnb_plaka:tnb, cihaz_id:cid, model:mdl, sofor:sof, aktif:true, createdAt:new Date().toISOString()
   });
   toast(`✅ ${kisa} eklendi`);
@@ -853,8 +853,8 @@ function clearAracForm() { ['va_k','va_t','va_c','va_m','va_s'].forEach(i=>docum
 
 async function delArac(id, plaka) {
   if (!confirm(`${plaka} silinsin mi? Haritadan da kaldırılacak.`)) return;
-  await fbDelete(`arac_takip/araclar/${id}`);
-  await fbDelete(`arac_takip/konumlar/${plaka}`);
+  await fbDelete(`aracTakip/araclar/${id}`);
+  await fbDelete(`aracTakip/sonKonumlar/${plaka}`);
   toast(`${plaka} silindi`);
   loadAracTbl();
   if (_markers[plaka]) { _markers[plaka].remove(); delete _markers[plaka]; }
@@ -866,7 +866,7 @@ async function delArac(id, plaka) {
 async function loadOtelList() {
   const el = document.getElementById('otelList');
   el.innerHTML = '<div style="color:#444;padding:12px">Yükleniyor…</div>';
-  const konumlar = await fbGet('arac_takip/otel_konumlar')||{};
+  const konumlar = await fbGet('aracTakip/otelKonumlari')||{};
   const keys = Object.keys(konumlar);
   if (!keys.length) { el.innerHTML = '<div style="color:#444;font-size:12px">Kayıtlı otel yok. Yukarıdaki formu kullanın.</div>'; return; }
   el.innerHTML = keys.map(k=>{
@@ -895,7 +895,7 @@ async function saveOtelManual() {
   const lng = parseFloat(document.getElementById('oa_lng').value);
   const rad = parseInt(document.getElementById('oa_rad').value)||300;
   if (!ad||!lat||!lng) { toast('Ad ve koordinat zorunlu','err'); return; }
-  await fbPut(`arac_takip/otel_konumlar/${slug(ad)}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
+  await fbPut(`aracTakip/otelKonumlari/${slug(ad)}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
   toast(`✅ ${ad} eklendi`);
   clearOtelForm(); loadOtelList(); loadStatic();
 }
@@ -907,13 +907,13 @@ async function saveOtel(k, ad) {
   const lng = parseFloat(document.getElementById(`on_${k}`)?.value);
   const rad = parseInt(document.getElementById(`or_${k}`)?.value)||300;
   if (!lat||!lng) { toast('Koordinat girin','err'); return; }
-  await fbPut(`arac_takip/otel_konumlar/${k}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
+  await fbPut(`aracTakip/otelKonumlari/${k}`, {otel_adi:ad, lat, lng, yaklasma_m:rad});
   toast(`✅ ${ad} güncellendi`); loadOtelList(); loadStatic();
 }
 
 async function delOtel(k) {
   if (!confirm('Koordinat silinsin mi?')) return;
-  await fbDelete(`arac_takip/otel_konumlar/${k}`);
+  await fbDelete(`aracTakip/otelKonumlari/${k}`);
   toast('Silindi'); loadOtelList(); loadStatic();
 }
 
@@ -921,7 +921,7 @@ async function delOtel(k) {
 // PLAKA EŞLEŞTİRME
 // ════════════════════════════════════════════════════════════════
 async function loadEslTbl() {
-  const data = await fbGet('arac_takip/eslestirmeler');
+  const data = await fbGet('aracTakip/plakaEslesme');
   const list = data ? Object.entries(data).filter(([,v])=>v&&v.tnb_plaka) : [];
   document.getElementById('eslTbl').innerHTML = !list.length
     ? '<tr><td colspan="5" style="color:#444;text-align:center;padding:20px">Eşleştirme yok</td></tr>'
@@ -946,12 +946,12 @@ async function addEslestir() {
   if (!cid) toast('⚠️ Cihaz ID girilmedi — plaka adıyla eşleştirme yapılacak','warn');
   const id = 'esl_'+Date.now();
   // Eşleştirme tablosuna kaydet
-  await fbPut(`arac_takip/eslestirmeler/${id}`, {
+  await fbPut(`aracTakip/plakaEslesme/${id}`, {
     tnb_plaka:tnb, sys_plaka:sys, cihaz_id:cid, sofor:sof, createdAt:new Date().toISOString()
   });
   // Araçlar tablosuna da yaz — bu olmadan haritada görünmez!
   const aracId = 'arac_esl_'+Date.now();
-  await fbPut(`arac_takip/araclar/${aracId}`, {
+  await fbPut(`aracTakip/araclar/${aracId}`, {
     kisa_plaka:sys, tnb_plaka:tnb, cihaz_id:cid, sofor:sof, aktif:true, createdAt:new Date().toISOString()
   });
   toast(`✅ ${tnb} → ${sys} eşleştirildi, Araçlar listesine eklendi`);
@@ -964,12 +964,12 @@ function editEsl(id, tnb, sys, cid, sof) {
   document.getElementById('pe_s').value  = sys;
   document.getElementById('pe_c').value  = cid;
   document.getElementById('pe_sf').value = sof;
-  fbDelete(`arac_takip/eslestirmeler/${id}`);
+  fbDelete(`aracTakip/plakaEslesme/${id}`);
   switchTab(document.querySelector('[data-tab="eslestir"]'), 'eslestir');
 }
 async function delEsl(id, plaka) {
   if (!confirm('Eşleştirme silinsin mi?')) return;
-  await fbDelete(`arac_takip/eslestirmeler/${id}`);
+  await fbDelete(`aracTakip/plakaEslesme/${id}`);
   toast('Silindi'); loadEslTbl(); loadStatic();
 }
 
