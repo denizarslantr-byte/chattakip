@@ -524,8 +524,14 @@ function _buildTrackingUI(container, FB_BASE) {
 </div>`;
 
   // ── Harita init ─────────────────────────────────────────────
+  // Ayarlardan merkez koordinatını oku
+  let _cfg = {};
+  try { _cfg = JSON.parse(localStorage.getItem('piano_gps_cfg')||'{}'); } catch(e){}
+  const _clat = _cfg.blat || _cfg.slat || 36.576;
+  const _clng = _cfg.blng || _cfg.slng || 30.556;
+
   const map = L.map('takipMap', { zoomControl: true, attributionControl: false })
-    .setView([36.576, 30.556], 13);
+    .setView([_clat, _clng], 13);
   window._tkMap = map;
   setTimeout(() => map.invalidateSize(true), 50);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
@@ -588,10 +594,10 @@ function _buildTrackingUI(container, FB_BASE) {
 
   // ── Canlı konum dinle (SSE) ─────────────────────────────────
   function startSSE() {
-    const sse = new EventSource(`${FB_BASE}/arac_takip/konumlar.json`);
+    const sse = new EventSource(`${FB_BASE}/konumlar.json`);
     sse.addEventListener('put',   e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderCars(d.data); } catch(x){} });
     sse.addEventListener('patch', e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderCars(d.data); } catch(x){} });
-    const sseU = new EventSource(`${FB_BASE}/arac_takip/uyarilar.json`);
+    const sseU = new EventSource(`${FB_BASE}/uyarilar.json`);
     sseU.addEventListener('put', e => { try { const d=JSON.parse(e.data); if(d&&d.data) renderAlerts(d.data); } catch(x){} });
   }
 
@@ -615,6 +621,7 @@ function _buildTrackingUI(container, FB_BASE) {
       return;
     }
     document.getElementById('tkNoData').style.display = 'none';
+    console.log('[TakipDebug] renderCars araç sayısı:', list.length);
 
     const withDist = list.map(([plaka,v])=>{
       let dist = null;
@@ -675,7 +682,13 @@ function _buildTrackingUI(container, FB_BASE) {
     unread.forEach(([id,v])=>{ if(!_shownAlerts.has(id)){ _shownAlerts.add(id); showToast((v.tip==='MAGAZA_YAKIN'?'🏬':'🏨')+' '+(v.mesaj||'Uyarı')); } });
   }
 
-  window.tkRefresh = async function() { await loadStatic(); const d = await fbGet('arac_takip/konumlar'); if(d) renderCars(d); };
+  window.tkRefresh = async function() {
+    await loadStatic();
+    const d = await fbGet('konumlar');
+    console.log('[TakipDebug] Refresh konum:', d);
+    if (d && Object.keys(d).length > 0) renderCars(d);
+    else { document.getElementById('tkNoData').style.display='flex'; }
+  };
   window._tkMap = map;
   window._tkMarkers = _markers;
 
@@ -697,6 +710,13 @@ function _buildTrackingUI(container, FB_BASE) {
   // Başlat
   loadStatic();
   startSSE();
+  // İlk yüklemede direkt konumları çek (SSE geç gelebilir)
+  setTimeout(async () => {
+    const d = await fbGet('konumlar');
+    console.log('[TakipDebug] İlk konum yüklemesi:', d);
+    if (d && Object.keys(d).length > 0) renderCars(d);
+    else document.getElementById('tkNoData').style.display = 'flex';
+  }, 500);
   loadSummary();
   setInterval(loadSummary, 120000);
   // Leaflet harita boyutu düzeltme — gizli container'dan açıldığında gerekli
