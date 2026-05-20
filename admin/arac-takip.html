@@ -362,23 +362,21 @@ input:focus,select:focus{border-color:var(--gold);}
 // ════════════════════════════════════════════════════════════════
 // FIREBASE — mevcut projenin URL'si
 // ════════════════════════════════════════════════════════════════
-const FB = 'https://rezervasyon-3f1b7-default-rtdb.europe-west1.firebasedatabase.app';
+const FB = 'https://chattakip-32c31-default-rtdb.firebasedatabase.app';
 
 // ════════════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════════════
 function doLogin() {
-  const pin = document.getElementById('pinIn').value.trim();
+  const pin = document.getElementById("pinIn").value.trim();
   if (!pin) return;
-  fbGet('adminPin').then(stored => {
-    const ok = stored ? String(stored) === pin : pin === '1907';
-    if (ok) { sessionStorage.setItem('adm_gps', pin); document.getElementById('loginOv').style.display='none'; init(); }
-    else { document.getElementById('pinErr').style.display='block'; }
-  }).catch(() => {
-    sessionStorage.setItem('adm_gps', pin);
-    document.getElementById('loginOv').style.display='none';
-    init();
-  });
+  const existing = sessionStorage.getItem("pianoUser");
+  if (existing) { sessionStorage.setItem("adm_gps", pin); document.getElementById("loginOv").style.display="none"; init(); return; }
+  fbGet("adminPin").then(stored => {
+    const ok = !stored || String(stored) === pin;
+    if (ok) { sessionStorage.setItem("adm_gps", pin); document.getElementById("loginOv").style.display="none"; init(); }
+    else { document.getElementById("pinErr").style.display="block"; }
+  }).catch(() => { sessionStorage.setItem("adm_gps", pin); document.getElementById("loginOv").style.display="none"; init(); });
 }
 document.getElementById('pinIn').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 
