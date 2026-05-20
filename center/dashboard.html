@@ -10,8 +10,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
   @keyframes tkpulse{0%,100%{opacity:1}50%{opacity:.3}}
-  #takipSection.active{display:flex!important;flex-direction:column;}
-  #takipContent{flex:1;min-height:0;display:flex;}
+  #takipSection.active{display:flex!important;flex-direction:column;width:100vw;height:100vh;}
+  #takipContent{flex:1;min-height:0;display:flex;height:calc(100vh - 40px);}
   #newResNotifStack{position:fixed;right:20px;bottom:20px;z-index:9998;width:min(360px,calc(100vw - 40px));display:flex;flex-direction:column;gap:10px;align-items:stretch;pointer-events:none}
   .new-res-toast{background:rgba(20,83,45,.97);border:1px solid rgba(34,197,94,.6);border-radius:14px;padding:13px 18px;box-shadow:0 8px 32px rgba(0,0,0,.6);cursor:pointer;pointer-events:auto}
   .new-res-toast .nr-title{font-size:13px;font-weight:800;color:#bbf7d0;margin-bottom:6px;display:flex;align-items:center;gap:7px}
@@ -369,9 +369,10 @@ function showSection(id, btnId) {
     document.getElementById('takipSection').classList.add('active');
     loadTakipFrame();
     // Harita her açılışta boyutu yenile
-    setTimeout(() => { if (window._tkMap) { window._tkMap.invalidateSize(); window._tkMap.invalidateSize(); } }, 100);
-    setTimeout(() => { if (window._tkMap) window._tkMap.invalidateSize(); }, 500);
-    setTimeout(() => { if (window._tkMap) window._tkMap.invalidateSize(); }, 1000);
+    // Harita boyutunu yenile - birden fazla zamanlayıcı
+    [100,300,600,1000,2000].forEach(t => setTimeout(() => {
+      if (window._tkMap) window._tkMap.invalidateSize(true);
+    }, t));
     document.querySelectorAll(".side-menu button").forEach(b => b.classList.remove("active-menu"));
     if (btnId) document.getElementById(btnId).classList.add("active-menu");
     return;
@@ -409,7 +410,7 @@ function _buildTrackingUI(container, FB_BASE) {
     const st = document.createElement('style');
     st.id = 'takip-styles';
     st.textContent = `
-#takipWrap{display:flex;height:100%;min-height:0;background:#0d0d0d;}
+#takipWrap{display:flex;height:100%;width:100%;min-height:0;background:#0d0d0d;overflow:hidden;}
 #takipLeft{width:300px;background:#111;border-right:1px solid #222;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
 #takipHeader{padding:10px 12px 8px;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
 #takipHeader h3{margin:0 0 6px;font-size:12px;color:#c9a84c;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;}
@@ -440,8 +441,8 @@ function _buildTrackingUI(container, FB_BASE) {
 .tkcar-model{font-size:10px;color:#555;margin-bottom:3px;}
 .tkcar-metrics{display:flex;gap:8px;font-size:11px;color:#888;}
 .tkcar-dist{font-size:10px;color:#555;margin-top:2px;}
-#takipMapWrap{flex:1;position:relative;min-width:0;}
-#takipMap{position:absolute;inset:0;}
+#takipMapWrap{flex:1;position:relative;min-width:0;height:100%;}
+#takipMap{position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;}
 #takipMapBar{position:absolute;bottom:0;left:0;right:0;background:rgba(13,13,13,.85);border-top:1px solid #222;padding:5px 12px;display:flex;gap:16px;align-items:center;font-size:11px;color:#666;z-index:10;}
 #tkRefreshBtn{position:absolute;top:10px;right:10px;z-index:10;background:#1a1a1a;border:1px solid #333;color:#e8e0d0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
 #tkRefreshBtn:hover{border-color:#c9a84c;}
@@ -525,6 +526,8 @@ function _buildTrackingUI(container, FB_BASE) {
   // ── Harita init ─────────────────────────────────────────────
   const map = L.map('takipMap', { zoomControl: true, attributionControl: false })
     .setView([36.576, 30.556], 13);
+  window._tkMap = map;
+  setTimeout(() => map.invalidateSize(true), 50);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
