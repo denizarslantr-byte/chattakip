@@ -474,7 +474,7 @@ async function testTNBGlobal() {
 
   const araclar = await fbGet('arac_takip/araclar');
   const eslestir = await fbGet('arac_takip/eslestirmeler');
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const konumlar = await fbGet('konumlar');
 
   const aList = araclar ? Object.values(araclar).filter(a=>a&&a.kisa_plaka) : [];
   const eList = eslestir ? Object.values(eslestir).filter(e=>e&&e.tnb_plaka) : [];
@@ -538,7 +538,7 @@ async function runTest() {
   ts('');
 
   // 1. Firebase'de konum var mı?
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const konumlar = await fbGet('konumlar');
   const pos = konumlar && konumlar[_testPlaka];
   if (pos) {
     ts(`✅ Firebase'de konum mevcut`);
@@ -657,13 +657,13 @@ let _sse=null, _sseA=null, _lastK={}, _shownA=new Set();
 
 function startSSE() {
   if (_sse) _sse.close();
-  _sse = new EventSource(`${FB}/arac_takip/konumlar.json`);
+  _sse = new EventSource(`${FB}/konumlar.json`);
   _sse.addEventListener('put',   e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
   _sse.addEventListener('patch', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderCars(d.data);}catch(x){} });
   _sse.onerror = ()=>{ setLive(false); setTimeout(startSSE,12000); };
 
   if (_sseA) _sseA.close();
-  _sseA = new EventSource(`${FB}/arac_takip/uyarilar.json`);
+  _sseA = new EventSource(`${FB}/uyarilar.json`);
   _sseA.addEventListener('put', e=>{ try{const d=JSON.parse(e.data);if(d&&d.data)renderAlerts(d.data);}catch(x){} });
 }
 
@@ -781,7 +781,7 @@ function renderAlerts(uyarilar) {
 
 async function forceRefresh() {
   await loadStatic();
-  const d = await fbGet('arac_takip/konumlar');
+  const d = await fbGet('konumlar');
   if(d) renderCars(d);
   map.invalidateSize();
   await triggerSync();
@@ -800,7 +800,7 @@ async function triggerSync() {
 async function loadAracTbl() {
   const data = await fbGet('arac_takip/araclar');
   const list = data ? Object.entries(data).filter(([,v])=>v&&v.kisa_plaka) : [];
-  const konumlar = await fbGet('arac_takip/konumlar');
+  const konumlar = await fbGet('konumlar');
   const kList = konumlar ? Object.keys(konumlar) : [];
 
   document.getElementById('aracTbl').innerHTML = !list.length
@@ -854,7 +854,7 @@ function clearAracForm() { ['va_k','va_t','va_c','va_m','va_s'].forEach(i=>docum
 async function delArac(id, plaka) {
   if (!confirm(`${plaka} silinsin mi? Haritadan da kaldırılacak.`)) return;
   await fbDelete(`arac_takip/araclar/${id}`);
-  await fbDelete(`arac_takip/konumlar/${plaka}`);
+  await fbDelete(`konumlar/${plaka}`);
   toast(`${plaka} silindi`);
   loadAracTbl();
   if (_markers[plaka]) { _markers[plaka].remove(); delete _markers[plaka]; }
