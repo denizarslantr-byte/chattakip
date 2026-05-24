@@ -10,16 +10,28 @@
   let state={role:'',name:'',hotel:'',key:'',messages:[],hotels:[],tab:'inbox',open:false,lastToastId:''};
 
   function detectUser(){
+    const path = String(location.pathname || '').toLowerCase();
+    const title = String(document.title || '').toLowerCase();
     const u = window._pianoUser || (()=>{try{return JSON.parse(sessionStorage.getItem('pianoUser')||'null')}catch(_){return null}})();
+
+    // Sayfa yolunu öncelikli kullan. Merkez sayfasında localStorage'da eski otel kalmışsa
+    // önceki sürüm merkez ekranını yanlışlıkla "otel" sanıyordu ve alıcı olarak sadece Merkez gösteriyordu.
+    if(path.includes('/admin/') || title.includes('admin')){
+      return {role:'admin',name:(u && (u.name||u.username)) || 'Admin',hotel:'',key:'admin'};
+    }
+    if(path.includes('/center/') || title.includes('merkez')){
+      return {role:'merkez',name:(u && (u.name||u.username)) || 'Merkez Operasyon',hotel:'',key:'merkez'};
+    }
+    if(path.includes('/hotel/') || title.includes('otel')){
+      const hotel = localStorage.getItem('hotel') || (u && u.hotel) || '';
+      return {role:'otel',name:hotel || 'Otel',hotel:hotel || '',key:'otel_'+(hotel || 'Otel')};
+    }
+
     if(u && (u.role==='admin'||u.role==='merkez')){
       return {role:u.role,name:u.name||u.username||(u.role==='admin'?'Admin':'Merkez Operasyon'),hotel:'',key:u.role};
     }
     const hotel = localStorage.getItem('hotel') || '';
-    const code = localStorage.getItem('hotelCode') || '';
     if(hotel) return {role:'otel',name:hotel,hotel,key:'otel_'+hotel};
-    const title = (document.title||'').toLowerCase();
-    if(title.includes('admin')) return {role:'admin',name:'Admin',hotel:'',key:'admin'};
-    if(title.includes('merkez')) return {role:'merkez',name:'Merkez Operasyon',hotel:'',key:'merkez'};
     return {role:'merkez',name:'Merkez Operasyon',hotel:'',key:'merkez'};
   }
 
@@ -87,6 +99,7 @@
         btn=document.createElement('button'); btn.id='pianoMsgMenuBtn'; btn.className='btn-dark btn-sm piano-msg-entry-btn'; btn.innerHTML='💬 Mesajlar <span class="piano-msg-badge">0</span>'; btn.onclick=togglePanel; const logout=[...top.querySelectorAll('button')].pop(); top.insertBefore(btn, logout || null);
       }
     }
+    return !!$('#pianoMsgMenuBtn');
   }
 
   function buildUI(){
@@ -104,6 +117,10 @@
       </div>`;
     document.body.appendChild(panel);
     const toast=document.createElement('div'); toast.className='piano-msg-toast'; toast.id='pianoMsgToast'; document.body.appendChild(toast);
+    // Admin panel bazı sayfalarda sonradan açıldığı için menü butonunu birkaç kez yeniden dene.
+    setTimeout(injectEntryButton, 300);
+    setTimeout(injectEntryButton, 1000);
+    setTimeout(injectEntryButton, 2500);
     $('#pianoMsgClose').onclick=()=>setOpen(false); $('#pianoMsgMin').onclick=()=>setOpen(false);
     $$('.piano-msg-tabs button',panel).forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab; $$('.piano-msg-tabs button',panel).forEach(x=>x.classList.toggle('active',x===b)); render();});
     $('#pianoMsgSend').onclick=sendMessage;
@@ -185,9 +202,10 @@
   async function listen(){
     try{
       const database=await db();
-      const msgQuery = window._fb.query
-        ? window._fb.query(window._fb.ref(database,'mesajlar'), window._fb.limitToLast ? window._fb.limitToLast(80) : undefined)
-        : window._fb.ref(database,'mesajlar');
+      const msgRef = window._fb.ref(database,'mesajlar');
+      const msgQuery = (window._fb.query && window._fb.limitToLast)
+        ? window._fb.query(msgRef, window._fb.limitToLast(80))
+        : msgRef;
       window._fb.onValue(msgQuery,snap=>{
         const oldUnread = unreadCount();
         const data=snap.exists()?snap.val():{};
