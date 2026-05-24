@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piano Deri Admin V6.0</title>
+  <link rel="stylesheet" href="../assets/piano-theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;display:flex;align-items:center;justify-content:center;padding:14px; }
+    .modal-box { background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto; }
+    .modal-box h3 { color:var(--gold2);margin-top:0; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="app-brand">
+    <div class="p">P</div>
+    <div class="name">PIANO DERİ</div>
+    <div class="sub">ADMİN PANELİ — V6.0</div>
+  </div>
+
+  <div id="apiWarning" class="notice" style="display:none"></div>
+
+  <!-- ── Giriş ── -->
+  <section id="pinSection" class="panel-card" style="max-width:460px;margin:0 auto 16px">
+    <h2 style="color:var(--gold2);margin-top:0">Admin Girişi</h2>
+    <label>Admin PIN</label>
+    <input id="adminPin" type="password" placeholder="PIN girin" onkeydown="if(event.key==='Enter')adminLogin()">
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 14px;color:#c0c0c0;font-size:13px">
+      <input type="checkbox" id="rememberAdmin">
+      <span>Beni hatırla</span>
+    </div>
+    <button class="btn-gold" style="width:100%" onclick="adminLogin()">GİRİŞ YAP</button>
+  </section>
+
+  <!-- ── Panel ── -->
+  <section id="adminPanel" style="display:none">
+    <div class="panel-card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <span style="color:var(--gold2);font-weight:700">⚙️ Admin Paneli</span>
+      <div style="flex:1"></div>
+      <a href="../center/dashboard.html" class="btn-dark btn-sm" style="text-decoration:none">🏠 Merkez</a>
+      <a href="../hotel/login.html"      class="btn-dark btn-sm" style="text-decoration:none">🏨 Otel</a>
+      <button class="btn-red btn-sm" onclick="adminLogout()">Çıkış</button>
+    </div>
+
+    <div class="tab-bar">
+      <button id="tab1" class="tab-btn active" onclick="openTab(1)">🏨 Oteller</button>
+      <button id="tab2" class="tab-btn"        onclick="openTab(2)">📊 Raporlar</button>
+      <button id="tab3" class="tab-btn"        onclick="openTab(3)">📋 Log</button>
+      <button id="tab4" class="tab-btn"        onclick="openTab(4)">⚙️ Ayarlar</button>
+      <button id="tab5" class="tab-btn"        onclick="openTab(5);loadPlakaRapor()">🚗 Araç Raporu</button>
+      <button id="tab6" class="tab-btn"        onclick="openTab(6)" style="background:rgba(83,149,255,.12);border-color:rgba(83,149,255,.3);color:#93c5fd">📥 İçe Aktar</button>
+      <button id="tab7" class="tab-btn"        onclick="openTab(7);loadAdminUsers()">👥 Kullanıcılar</button>
+    </div>
+
+    <!-- TAB 1: Oteller -->
+    <div id="tabContent1">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">Yeni Otel Ekle</h3>
+        <div class="grid grid4">
+          <div><label>Otel Adı</label><input id="nHotelName" placeholder="Lara Hotel"></div>
+          <div><label>Kullanıcı Kodu</label><input id="nHotelCode" placeholder="PD001"></div>
+          <div><label>Şifre</label><input id="nHotelPass" placeholder="Şifre"></div>
+          <div><label>Acenta Kodu</label><input id="nHotelAcenta" placeholder="ACN-001"></div>
+        </div>
+        <br>
+        <button class="btn-gold" onclick="saveHotel()">+ Oteli Ekle</button>
+        <input type="file" id="hotelImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importHotelsExcel(event)">
+        <button class="btn-dark" onclick="document.getElementById('hotelImportFile').click()">📥 Excelden Otel İçe Aktar</button>
+        <button class="btn-dark" onclick="downloadHotelTemplate()">⬇ Otel Şablonu</button>
+      </div>
+
+      <div class="panel-card table-wrap">
+        <h3 style="color:var(--gold2);margin-top:0">Oteller</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Otel Adı</th><th>Kullanıcı Kodu</th><th>Şifre</th>
+              <th>Acenta Kodu</th><th>Durum</th><th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="hotelTableBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text2)">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Raporlar -->
+    <div id="tabContent2" style="display:none">
+      <div class="panel-card">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <h3 style="color:var(--gold2);margin:0;flex:1">📊 Raporlar</h3>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('today')">Bugün</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('week')">Bu Hafta</button>
+          <button class="btn-dark btn-sm" onclick="setAdminRange('month')">Bu Ay</button>
+          <input type="date" id="aRStart" style="width:135px">
+          <span style="color:var(--text2)">—</span>
+          <input type="date" id="aREnd"   style="width:135px">
+          <button class="btn-gold btn-sm" onclick="loadAdminRapor()">Uygula</button>
+        </div>
+        <!-- Filtreler -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;padding:12px;background:rgba(0,0,0,.25);border-radius:10px;border:1px solid var(--b2)">
+          <div>
+            <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">🏨 Otel</label>
+            <select id="aRHotel" style="width:100%;background:var(--bg3);border:1px solid var(--b2);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px">
+              <option value="">— Tüm Oteller —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">👤 Personel</label>
+            <select id="aRPersonel" style="width:100%;background:var(--bg3);border:1px solid var(--b2);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px">
+              <option value="">— Tüm Personel —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">🚗 Plaka</label>
+            <select id="aRPlaka" style="width:100%;background:var(--bg3);border:1px solid var(--b2);color:var(--text);border-radius:7px;padding:6px 8px;font-size:12px">
+              <option value="">— Tüm Araçlar —</option>
+            </select>
+          </div>
+        </div>
+        <div id="adminRaporContent"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Log -->
+    <div id="tabContent3" style="display:none">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">📋 Log Filtrele</h3>
+        <div class="grid grid4">
+          <div>
+            <label>İşlem</label>
+            <select id="logActionF">
+              <option value="">Tümü</option>
+              <option>ADMIN_LOGIN</option><option>LOGIN</option>
+              <option>ADD_RES</option><option>UPDATE_OPS</option><option>SET_STATUS</option>
+              <option>ADD_HOTEL</option><option>UPDATE_HOTEL</option><option>DELETE_HOTEL</option>
+              <option>ADD_STAFF</option><option>DELETE_STAFF</option>
+              <option>STAFF_OFF</option><option>STAFF_OFF_REMOVE</option>
+              <option>CHANGE_PIN</option>
+            </select>
+          </div>
+          <div><label>Kullanıcı</label><input id="logUserF" placeholder="Filtrele..."></div>
+          <div><label>Başlangıç</label><input type="date" id="logStartF"></div>
+          <div><label>Bitiş</label><input type="date" id="logEndF"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn-gold btn-sm" onclick="loadLogs()">🔍 Getir</button>
+          <button class="btn-dark btn-sm" onclick="clearLogFilters()">↺ Temizle</button>
+          <button class="btn-dark btn-sm" onclick="exportLogs()">⬇ CSV</button>
+        </div>
+      </div>
+      <div id="logSummary" style="display:none" class="panel-card">
+        <div id="logSummaryContent"></div>
+      </div>
+      <div class="panel-card table-wrap">
+        <div id="logCount" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>
+        <table>
+          <thead><tr><th>Tarih</th><th>İşlem</th><th>Kullanıcı</th><th>Detay</th></tr></thead>
+          <tbody id="logBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--text2)">Filtreleyin ve "Getir" e basın.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 5: Araç Raporu -->
+    <div id="tabContent5" style="display:none">
+      <div class="panel-card">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <h3 style="color:var(--gold2);margin:0;flex:1">🚗 Araç Kullanım Raporu</h3>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('today')">Bugün</button>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('week')">Bu Hafta</button>
+          <button class="btn-dark btn-sm" onclick="setPlakaRange('month')">Bu Ay</button>
+          <input type="date" id="pRStart" style="width:135px">
+          <span style="color:var(--text2)">—</span>
+          <input type="date" id="pREnd" style="width:135px">
+          <button class="btn-gold btn-sm" onclick="loadPlakaRapor()">Uygula</button>
+        </div>
+        <div id="plakaRaporContent">
+          <div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Ayarlar -->
+    <div id="tabContent4" style="display:none">
+      <div class="panel-card" style="max-width:480px">
+        <h3 style="color:var(--gold2);margin-top:0">🔐 Admin PIN Değiştir</h3>
+        <div style="margin-bottom:12px">
+          <label>Mevcut PIN</label>
+          <input id="oldPin" type="password" placeholder="Mevcut PIN">
+        </div>
+        <div style="margin-bottom:12px">
+          <label>Yeni PIN</label>
+          <input id="newPin" type="password" placeholder="Yeni PIN (en az 4 karakter)">
+        </div>
+        <div style="margin-bottom:16px">
+          <label>Yeni PIN (Tekrar)</label>
+          <input id="newPin2" type="password" placeholder="Yeni PIN tekrar">
+        </div>
+        <button class="btn-gold" onclick="changePin()">PIN'i Değiştir</button>
+        <div id="pinFeedback" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: İçe Aktar -->
+    <!-- TAB 7: Kullanıcılar / Personeller -->
+    <div id="tabContent7" style="display:none">
+      <div class="panel-card">
+        <h3 style="color:var(--gold2);margin-top:0">👥 Kullanıcı / Personel Yönetimi</h3>
+        <div class="grid grid4">
+          <div><label>Ad Soyad</label><input id="adminUserName" placeholder="Personel tam adı"></div>
+          <div><label>Grup</label><select id="adminUserGrup"><option value="">Grup Yok</option><option value="GRUP1">GRUP1</option><option value="GRUP2">GRUP2</option></select></div>
+          <div><label>Durum</label><select id="adminUserStatus"><option value="ACTIVE">AKTİF</option><option value="PASSIVE">PASİF</option></select></div>
+          <div style="align-self:flex-end"><button class="btn-gold" style="width:100%" onclick="adminAddUser()">+ Kullanıcı Ekle</button></div>
+        </div>
+        <br>
+        <input type="file" id="adminUserImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="adminImportUsersExcel(event)">
+        <button class="btn-dark" onclick="document.getElementById('adminUserImportFile').click()">📥 Excelden Kullanıcı İçe Aktar</button>
+        <button class="btn-dark" onclick="adminDownloadUsersTemplate()">⬇ Kullanıcı Şablonu</button>
+      </div>
+      <div class="panel-card table-wrap">
+        <h3 style="color:var(--gold2);margin-top:0">Kullanıcılar / Personeller</h3>
+        <table>
+          <thead><tr><th>Ad Soyad</th><th>Grup</th><th>Durum</th><th>İşlemler</th></tr></thead>
+          <tbody id="adminUsersBody"><tr><td colspan="4" style="text-align:center;color:var(--text2)">Yükleniyor...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tabContent6" style="display:none">
+
+      <!-- Şablon Bilgi Kutusu -->
+      <div class="panel-card" style="background:rgba(29,78,216,.08);border-color:rgba(96,165,250,.3)">
+        <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <h3 style="color:#93c5fd;margin-top:0;font-size:14px">📋 Excel / CSV Şablon Formatı</h3>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8">
+              Merkez ekrandan alınan Excel şablonu bu sırada okunur:<br>
+              <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px">TARIH · ACENTAADI · GRUPBASKANADI · KARTNO · UYRUK · SERVISCIADI · SERVISCIADI2 · SERVISCIADI3 · SERVISCIADI4 · PAX · PAXCOCUK · GIRIS · CIKIS · AYAK · SUBEKOD · SUBEADI</code><br>
+              <b style="color:var(--text)">Zorunlu:</b> TARIH · ACENTAADI · GIRIS &nbsp;|&nbsp;
+              <b style="color:var(--text)">Tarih formatı:</b> <code style="background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px">17.05.2026</code> &nbsp;|&nbsp;
+              <b style="color:var(--text)">Saat:</b> <code style="background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px">16:00</code><br>
+              Not: ACENTAKOD sütunu bu formatta yoktur. KARTNO kart bilgisi, GIRIS rezervasyon saati, CIKIS çıkış saati olarak aktarılır.
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+            <button class="btn-dark btn-sm" onclick="importSablonIndir()" style="border-color:rgba(96,165,250,.4);color:#93c5fd">⬇ Örnek Şablon İndir</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="panel-card">
+        <div id="importDropZone" style="border:2px dashed rgba(96,165,250,.3);border-radius:12px;padding:44px 20px;text-align:center;cursor:pointer;position:relative;transition:all .2s;background:rgba(29,78,216,.04)"
+          ondragover="event.preventDefault();this.style.borderColor='rgba(96,165,250,.7)';this.style.background='rgba(29,78,216,.1)'"
+          ondragleave="this.style.borderColor='rgba(96,165,250,.3)';this.style.background='rgba(29,78,216,.04)'"
+          ondrop="event.preventDefault();this.style.borderColor='rgba(96,165,250,.3)';this.style.background='rgba(29,78,216,.04)';importHandleDrop(event)">
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="importHandleFile(event)">
+          <div style="font-size:40px;margin-bottom:10px;opacity:.6">📊</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px">Excel veya CSV dosyasını seçin ya da sürükleyip bırakın</div>
+          <div style="font-size:11px;color:var(--text2)">.xlsx · .xls · .csv</div>
+        </div>
+      </div>
+
+      <!-- Önizleme (dosya yüklendikten sonra görünür) -->
+      <div id="importPreview" style="display:none">
+        <div class="panel-card">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <h3 style="color:var(--gold2);margin:0;flex:1">🔍 Önizleme <span id="importCount" style="font-size:12px;color:var(--text2)"></span></h3>
+            <button class="btn-dark btn-sm" onclick="importTemizle()">✕ İptal</button>
+            <button class="btn-dark btn-sm" onclick="importOnizlemeIndir()">⬇ Önizleme İndir</button>
+            <button class="btn-gold btn-sm" id="importBaslatBtn" onclick="importBaslat()">🚀 Firebase'e Aktar</button>
+          </div>
+
+          <!-- Stat Kartlar -->
+          <div class="grid grid4" style="margin-bottom:14px">
+            <div class="panel-card" style="text-align:center;padding:14px;background:rgba(0,0,0,.2)">
+              <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">TOPLAM</div>
+              <div style="font-size:28px;font-weight:900;color:var(--gold2)" id="istTotal">0</div>
+            </div>
+            <div class="panel-card" style="text-align:center;padding:14px;background:rgba(20,83,45,.2);border-color:rgba(34,197,94,.3)">
+              <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">HAZIR</div>
+              <div style="font-size:28px;font-weight:900;color:#bbf7d0" id="istOk">0</div>
+            </div>
+            <div class="panel-card" style="text-align:center;padding:14px;background:rgba(120,53,15,.2);border-color:rgba(251,191,36,.3)">
+              <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">UYARI</div>
+              <div style="font-size:28px;font-weight:900;color:#fde68a" id="istWarn">0</div>
+            </div>
+            <div class="panel-card" style="text-align:center;padding:14px;background:rgba(127,29,29,.2);border-color:rgba(248,113,113,.3)">
+              <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">HATA (ATLANIR)</div>
+              <div style="font-size:28px;font-weight:900;color:#fca5a5" id="istErr">0</div>
+            </div>
+          </div>
+
+          <!-- Uyarı kutusu -->
+          <div id="importWarnBox" style="display:none;background:rgba(120,53,15,.25);border:1px solid rgba(251,191,36,.4);border-radius:10px;padding:11px 14px;font-size:12px;color:#fde68a;margin-bottom:12px"></div>
+
+          <!-- Tablo -->
+          <div class="table-wrap" style="max-height:380px;overflow-y:auto">
+            <table id="importPreviewTable">
+              <thead><tr><th>#</th><th>Tarih</th><th>Saat</th><th>Otel</th><th>Yet.</th><th>Çoc.</th><th>Uyruk</th><th>Satış</th><th>Ayak</th><th>Kart</th><th>Çıkış</th><th>Durum</th></tr></thead>
+              <tbody id="importPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- İlerleme (aktarım başlayınca görünür) -->
+      <div id="importProgress" style="display:none">
+        <div class="panel-card">
+          <h3 style="color:var(--gold2);margin-top:0" id="importProgLabel">Hazırlanıyor...</h3>
+          <div class="grid grid4" style="margin-bottom:14px">
+            <div style="text-align:center;background:rgba(0,0,0,.2);border:1px solid var(--b2);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">TOPLAM</div><div style="font-size:22px;font-weight:900;color:var(--gold2)" id="iprTotal">0</div></div>
+            <div style="text-align:center;background:rgba(20,83,45,.2);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">BAŞARILI</div><div style="font-size:22px;font-weight:900;color:#bbf7d0" id="iprOk">0</div></div>
+            <div style="text-align:center;background:rgba(120,53,15,.2);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">UYARI</div><div style="font-size:22px;font-weight:900;color:#fde68a" id="iprWarn">0</div></div>
+            <div style="text-align:center;background:rgba(127,29,29,.2);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">HATA</div><div style="font-size:22px;font-weight:900;color:#fca5a5" id="iprErr">0</div></div>
+          </div>
+          <div style="background:rgba(0,0,0,.3);border-radius:999px;height:10px;overflow:hidden;margin-bottom:8px">
+            <div id="importProgBar" style="height:100%;border-radius:999px;background:linear-gradient(90deg,#b8872d,#f3cf75);transition:width .3s;width:0%"></div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:14px" id="importProgTxt">0 / 0</div>
+          <div id="importLog" style="background:rgba(0,0,0,.4);border:1px solid var(--b2);border-radius:10px;padding:12px;max-height:220px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.8"></div>
+          <div id="importDoneBtns" style="display:none;margin-top:12px;display:none;justify-content:flex-end;gap:8px">
+            <button class="btn-dark btn-sm" onclick="importTemizle()">↺ Yeni Aktarım</button>
+            <button class="btn-gold btn-sm" onclick="openTab(1)">✅ Bitti</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tabContent6 -->
+
+  </section>
+</div>
+
+<!-- ── Düzenleme Modalı ── -->
+<div id="editModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>✏️ Oteli Düzenle</h3>
+    <input type="hidden" id="editHotelId">
+    <div style="margin-bottom:11px"><label>Otel Adı</label><input id="editHotelName"></div>
+    <div style="margin-bottom:11px"><label>Kullanıcı Kodu</label><input id="editHotelCode"></div>
+    <div style="margin-bottom:11px"><label>Şifre</label><input id="editHotelPass"></div>
+    <div style="margin-bottom:11px"><label>Acenta Kodu</label><input id="editHotelAcenta" placeholder="ACN-001"></div>
+    <div style="margin-bottom:16px">
+      <label>Durum</label>
+      <select id="editHotelStatus">
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-gold" style="flex:1" onclick="saveEditHotel()">💾 Kaydet</button>
+      <button class="btn-dark" onclick="closeModal()">İptal</button>
+    </div>
+  </div>
+</div>
+
+<script src="../config/config.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../config/firebase.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../assets/common.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<script src="../assets/firebase-api.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<link rel="stylesheet" href="../assets/message-widget.css?v=20260524-msg">
+<script src="../assets/message-widget.js?v=20260524-msg"></script>
+
+<script>
+showApiWarning();
+
+let logsCache = [], hotelsData = [], adminRaporData = null, adminPerfData = null;
+
+// ── Giriş ──────────────────────────────────────────────────────
+window.addEventListener("load", () => {
+  if (sessionStorage.getItem("adminAuth") === "ok") { openAdmin(); return; }
+  const pin = localStorage.getItem("adminRemPin");
+  if (pin) { adminPin.value = pin; rememberAdmin.checked = true; }
+});
+
+async function adminLogin() {
+  const pin = adminPin.value.trim();
+  if (!pin) return showToast("PIN girin","err");
+  const ok2 = await adminAuth(pin);
+  const r = { success: ok2 };
+  if (r.success) {
+    sessionStorage.setItem("adminAuth","ok");
+    if (rememberAdmin.checked) localStorage.setItem("adminRemPin", pin);
+    else localStorage.removeItem("adminRemPin");
+    openAdmin();
+  } else {
+    showToast("❌ " + (r.message||"Hatalı PIN"),"err");
+    adminPin.value = "";
+  }
+}
+
+function openAdmin() {
+  pinSection.style.display = "none";
+  adminPanel.style.display = "block";
+  loadHotels();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("adminAuth");
+  localStorage.removeItem("adminRemPin");
+  adminPanel.style.display = "none";
+  pinSection.style.display = "block";
+  adminPin.value = ""; rememberAdmin.checked = false;
+}
+
+// ── Tab ────────────────────────────────────────────────────────
+function openTab(n) {
+  [1,2,3,4,5,6,7].forEach(i => {
+    const tc = document.getElementById("tabContent"+i);
+    if(tc) tc.style.display = i===n?"block":"none";
+    const tb = document.getElementById("tab"+i);
+    if(tb) tb.classList.toggle("active", i===n);
+  });
+  if (n===2) { loadAdminRapor(); populateAdminRaporFilters(); }
+  if (n===7) loadAdminUsers();
+}
+
+// ── Oteller ────────────────────────────────────────────────────
+// ── Firebase yardımcı hesaplama fonksiyonları ──────────────────
+async function calcStatsFromFirebase(startDate, endDate) {
+  const all = await getReservations();
+  const filtered = all.filter(r => (!startDate || r.date >= startDate) && (!endDate || r.date <= endDate));
+  let totalRes=0, totalPax=0;
+  const byStatus={}, byNation={}, byHotel={}, byDay={}, byHour={};
+  filtered.forEach(r => {
+    totalRes++; totalPax += (Number(r.adult)||0)+(Number(r.child)||0);
+    const st = r.status||"PENDING";
+    const hour = String(r.time||"").slice(0,2)||"??";
+    byStatus[st]   = (byStatus[st]||0)+1;
+    byNation[r.nation||"Diger"] = (byNation[r.nation||"Diger"]||0)+1;
+    byHotel[r.hotel||""]  = (byHotel[r.hotel||""]||0)+1;
+    byDay[r.date||""]     = (byDay[r.date||""]||0)+1;
+    byHour[hour]          = (byHour[hour]||0)+1;
+  });
+  return { success:true, totalRes, totalPax, byStatus, byNation, byHotel, byDay, byHour };
+}
+
+async function calcPerfFromFirebase(startDate, endDate, filterHotel='', filterPersonel='', filterPlaka='') {
+  const all = await getReservations();
+  const filtered = all.filter(r => {
+    if (!startDate||r.date<startDate) return false;
+    if (!endDate||r.date>endDate) return false;
+    if (r.status==="CANCELLED") return false;
+    if (filterHotel   && r.hotel !== filterHotel) return false;
+    if (filterPersonel && !([r.staff1,r.staff2,r.staff3,r.staff4].some(s=>s===filterPersonel))) return false;
+    if (filterPlaka   && String(r.ayak||'').trim() !== filterPlaka) return false;
+    return true;
+  });
+  const perf = {};
+  filtered.forEach(r => {
+    const pax=(Number(r.adult)||0)+(Number(r.child)||0);
+    [r.staff1,r.staff2,r.staff3,r.staff4].filter(Boolean).forEach(n => {
+      if(!perf[n]) perf[n]={count:0,pax:0};
+      perf[n].count++; perf[n].pax+=pax;
+    });
+  });
+  return Object.entries(perf).map(([name,v])=>({name,count:v.count,pax:v.pax})).sort((a,b)=>b.count-a.count);
+}
+
+async function calcPlakaFromFirebase(startDate, endDate) {
+  const all = await getReservations();
+  const stats = {};
+  all.filter(r => r.status!=="CANCELLED"&&(!startDate||r.date>=startDate)&&(!endDate||r.date<=endDate)).forEach(r => {
+    const plaka = String(r.ayak||"").trim();
+    if(!plaka) return;
+    if(!stats[plaka]) stats[plaka]={count:0,dates:[],hotels:{}};
+    stats[plaka].count++;
+    if(!stats[plaka].dates.includes(r.date)) stats[plaka].dates.push(r.date);
+    stats[plaka].hotels[r.hotel]=(stats[plaka].hotels[r.hotel]||0)+1;
+  });
+  return Object.entries(stats).map(([plaka,v])=>{
+    const sorted=v.dates.sort();
+    return{plaka,count:v.count,gunSayisi:v.dates.length,ilkKullanim:sorted[0]||"",sonKullanim:sorted[sorted.length-1]||"",oteller:v.hotels};
+  }).sort((a,b)=>b.count-a.count);
+}
+
+async function loadHotels() {
+  hotelsData = await getHotels();
+  renderHotels();
+}
+
+function renderHotels() {
+  hotelTableBody.innerHTML = hotelsData.length
+    ? hotelsData.map(x => `
+        <tr>
+          <td><b>${x.hotel}</b></td>
+          <td><code style="color:var(--gold)">${x.code}</code></td>
+          <td style="color:var(--text2)">${x.password}</td>
+          <td style="color:var(--gold2)">${x.acentaCode||"—"}</td>
+          <td><span class="badge ${x.status==="ACTIVE"?"exited":"cancelled"}">${x.status}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="btn-blue btn-sm" onclick="openEditModal(${JSON.stringify(x).replace(/"/g,'&quot;')})">✏️ Düzelt</button>
+              <button class="btn-red  btn-sm" onclick="deleteHotelUI('${x.id || x._key}','${String(x.hotel||'').replace(/'/g,"\\'")}')">🗑 Sil</button>
+            </div>
+          </td>
+        </tr>`)
+      .join("")
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text2)">Otel yok.</td></tr>';
+}
+
+async function saveHotel() {
+  const name   = nHotelName.value.trim();
+  const code   = nHotelCode.value.trim();
+  const pass   = nHotelPass.value.trim();
+  const acenta = nHotelAcenta.value.trim();
+  if (!name||!code||!pass) return showToast("Ad, kod ve şifre zorunlu","err");
+  await addHotel({ hotel:name, code, password:pass, acentaCode:acenta, status:"ACTIVE" });
+  showToast("✅ Otel eklendi: "+name);
+  nHotelName.value=""; nHotelCode.value=""; nHotelPass.value=""; nHotelAcenta.value="";
+  loadHotels();
+}
+
+function openEditModal(h) {
+  editHotelId.value     = h.id;
+  editHotelName.value   = h.hotel;
+  editHotelCode.value   = h.code;
+  editHotelPass.value   = h.password;
+  editHotelAcenta.value = h.acentaCode||"";
+  editHotelStatus.value = h.status||"ACTIVE";
+  editModal.style.display = "flex";
+}
+
+function closeModal() { editModal.style.display = "none"; }
+
+async function saveEditHotel() {
+  const id     = editHotelId.value;
+  const name   = editHotelName.value.trim();
+  const code   = editHotelCode.value.trim();
+  const pass   = editHotelPass.value.trim();
+  const acenta = editHotelAcenta.value.trim();
+  const status = editHotelStatus.value;
+  if (!name||!code||!pass) return showToast("Ad, kod ve şifre zorunlu","err");
+  await updateHotel(id, { hotel:name, code, password:pass, acentaCode:acenta, status });
+  showToast("✅ Otel güncellendi"); closeModal(); loadHotels();
+}
+
+async function deleteHotelUI(id, name) {
+  if (!id || id === "undefined") return showToast("❌ Otel ID bulunamadı. Sayfayı yenileyip tekrar deneyin.", "err");
+  if (!confirm(`"${name}" oteli kalıcı olarak silinsin mi?`)) return;
+  await window.deleteHotel(id);
+  showToast("Otel silindi");
+  await loadHotels();
+}
+
+function rowVal(row, names) {
+  for (const n of names) {
+    if (row[n] !== undefined && row[n] !== null && String(row[n]).trim() !== "") return String(row[n]).trim();
+  }
+  return "";
+}
+
+async function importHotelsExcel(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined") return showToast("Excel okuyucu yüklenemedi", "err");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type:"array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:"" });
+  if (!rows.length) return showToast("Excel boş", "err");
+  let added = 0, skipped = 0;
+  for (const row of rows) {
+    const hotel = rowVal(row, ["Otel Adı","OTEL ADI","otel","hotel"]);
+    const code = rowVal(row, ["Kullanıcı Kodu","KULLANICI KODU","Kullanici Kodu","code"]);
+    const password = rowVal(row, ["Şifre","SIFRE","ŞİFRE","Sifre","password"]);
+    const acentaCode = rowVal(row, ["Acenta Kodu","ACENTA KODU","acentaCode"]);
+    const status = rowVal(row, ["Durum","DURUM","status"]) || "ACTIVE";
+    if (!hotel || !code || !password) { skipped++; continue; }
+    await addHotel({ hotel, code, password, acentaCode, status: status.toUpperCase() });
+    added++;
+  }
+  showToast(`✅ ${added} otel aktarıldı${skipped ? `, ${skipped} satır atlandı` : ""}`);
+  await loadHotels();
+}
+
+function downloadHotelTemplate() {
+  const headers = ["Otel Adı","Kullanıcı Kodu","Şifre","Acenta Kodu","Durum"];
+  const rows = [["Lara Hotel","PD001","1234","ACN-001","ACTIVE"]];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Oteller");
+  XLSX.writeFile(wb, "otel-aktarim-sablonu.xlsx");
+}
+
+editModal.addEventListener("click", e => { if (e.target===editModal) closeModal(); });
+
+// ── Admin Raporlar ─────────────────────────────────────────────
+function setAdminRange(range) {
+  const t = todayStr();
+  if (range==="today") { aRStart.value=t; aREnd.value=t; }
+  else if (range==="week")  { aRStart.value=weekStart(t); aREnd.value=t; }
+  else if (range==="month") { aRStart.value=monthStart(t); aREnd.value=t; }
+  loadAdminRapor();
+}
+
+async function populateAdminRaporFilters() {
+  try {
+    const [hotelList, staffList, plakaList] = await Promise.all([getHotels(), getStaff(), getPlakalar()]);
+    const hs = document.getElementById('aRHotel');
+    if (hs) {
+      const cur = hs.value;
+      hs.innerHTML = '<option value="">— Tüm Oteller —</option>' +
+        hotelList.sort((a,b)=>String(a.hotel||'').localeCompare(String(b.hotel||''),'tr'))
+          .map(h=>`<option value="${h.hotel}"${h.hotel===cur?' selected':''}>${h.hotel}</option>`).join('');
+    }
+    const ps = document.getElementById('aRPersonel');
+    if (ps) {
+      const cur = ps.value;
+      ps.innerHTML = '<option value="">— Tüm Personel —</option>' +
+        staffList.filter(s=>s.status==='ACTIVE').sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'tr'))
+          .map(s=>`<option value="${s.name}"${s.name===cur?' selected':''}>${s.name}</option>`).join('');
+    }
+    const pls = document.getElementById('aRPlaka');
+    if (pls) {
+      const cur = pls.value;
+      pls.innerHTML = '<option value="">— Tüm Araçlar —</option>' +
+        plakaList.sort((a,b)=>String(a.plaka||'').localeCompare(String(b.plaka||'')))
+          .map(p=>`<option value="${p.plaka}"${p.plaka===cur?' selected':''}>${p.plaka}${p.model?' ('+p.model+')':''}</option>`).join('');
+    }
+  } catch(e) { console.error('Filter populate error:', e); }
+}
+
+async function loadAdminRapor() {
+  const s = aRStart.value || todayStr();
+  const e = aREnd.value   || todayStr();
+  const filterHotel   = document.getElementById('aRHotel')?.value   || '';
+  const filterPersonel = document.getElementById('aRPersonel')?.value || '';
+  const filterPlaka   = document.getElementById('aRPlaka')?.value   || '';
+  adminRaporContent.innerHTML='<div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>';
+  [adminRaporData, adminPerfData] = await Promise.all([
+    calcStatsFromFirebase(s, e, filterHotel, filterPersonel, filterPlaka),
+    calcPerfFromFirebase(s, e, filterHotel, filterPersonel, filterPlaka)
+  ]);
+  if (!adminRaporData?.success) { adminRaporContent.innerHTML='<div class="notice">Veri alınamadı.</div>'; return; }
+  // Aktif filtreler göster
+  const aktifFiltreler = [
+    filterHotel   ? `🏨 ${filterHotel}`   : '',
+    filterPersonel ? `👤 ${filterPersonel}` : '',
+    filterPlaka   ? `🚗 ${filterPlaka}`   : ''
+  ].filter(Boolean);
+  const filterBadge = aktifFiltreler.length
+    ? `<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">${aktifFiltreler.map(f=>`<span style="background:rgba(216,170,75,.15);border:1px solid var(--b);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--gold2)">${f}</span>`).join('')}</div>` : '';
+  adminRaporContent.innerHTML = filterBadge;
+  renderAdminRapor(s, e);
+}
+
+function bar(label, val, max, cls="") {
+  const pct = max > 0 ? Math.round(val/max*100) : 0;
+  return `<div class="bar-row">
+    <span class="bar-label">${label}</span>
+    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <span class="bar-value">${val}</span>
+  </div>`;
+}
+
+function renderAdminRapor(s, e) {
+  const d = adminRaporData;
+  const nEnt = Object.entries(d.byNation||{}).sort((a,b)=>b[1]-a[1]);
+  const hEnt = Object.entries(d.byHotel||{}).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const dEnt = Object.entries(d.byDay  ||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const sEnt = Object.entries(d.byStatus||{}).sort((a,b)=>b[1]-a[1]);
+  const mxN  = Math.max(...nEnt.map(x=>x[1]),1);
+  const mxH  = Math.max(...hEnt.map(x=>x[1]),1);
+  const mxD  = Math.max(...dEnt.map(x=>x[1]),1);
+  const mxP  = adminPerfData?.length ? adminPerfData[0].count : 1;
+  const mxHr = Math.max(...Object.values(d.byHour||{1:1}),1);
+
+  // Acenta kodu haritası
+  const acentaMap = {};
+  hotelsData.forEach(h => { acentaMap[h.hotel] = h.acentaCode || ""; });
+
+  adminRaporContent.innerHTML += `
+    <div class="stat-cards">
+      <div class="stat-card"><div class="s-val">${d.totalRes}</div><div class="s-lbl">Rezervasyon</div></div>
+      <div class="stat-card"><div class="s-val">${d.totalPax}</div><div class="s-lbl">Toplam PAX</div></div>
+      <div class="stat-card"><div class="s-val">${Object.keys(d.byHotel||{}).length}</div><div class="s-lbl">Aktif Otel</div></div>
+      <div class="stat-card"><div class="s-val">${adminPerfData?.length||0}</div><div class="s-lbl">Personel</div></div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Durum Dağılımı</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        ${sEnt.map(([st,n])=>`<span class="badge pending" style="font-size:12px">${statusLabel(st)}: ${n}</span>`).join("")}
+      </div>
+    </div>
+
+    <div class="grid grid3" style="gap:12px;margin-bottom:12px">
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🌍 Uyruk</div>
+        <div class="bar-chart">${nEnt.map(([l,v])=>bar(l,v,mxN)).join("")}</div>
+      </div>
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏨 Otel (Acenta: ${Object.values(acentaMap).filter(Boolean).length} kayıtlı)</div>
+        <div class="bar-chart">
+          ${hEnt.map(([l,v])=>bar((acentaMap[l]?acentaMap[l]+" • ":"")+l,v,mxH,"blue")).join("")}
+        </div>
+      </div>
+      <div class="panel-card">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⏰ Saat</div>
+        <div class="bar-chart">
+          ${Object.entries(d.byHour||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([l,v])=>bar(l+":xx",v,mxHr,"green")).join("")}
+        </div>
+      </div>
+    </div>
+
+    ${dEnt.length > 1 ? `
+    <div class="panel-card" style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📅 Günlük Trend</div>
+      <div class="bar-chart">${dEnt.map(([l,v])=>bar(l.slice(5),v,mxD,"blue")).join("")}</div>
+    </div>` : ""}
+
+    ${adminPerfData?.length ? `
+    <div class="panel-card">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏆 Personel Performansı</div>
+      ${adminPerfData.map((p,i)=>`
+        <div class="perf-row">
+          <div class="perf-rank ${i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"rank-n"}">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
+          <div class="perf-name">${p.name}</div>
+          <div class="perf-meta">${p.count} seans · ${p.pax} pax</div>
+          <div class="perf-bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${Math.round(p.count/mxP*100)}%"></div></div></div>
+        </div>`).join("")}
+    </div>` : ""}`;
+}
+
+// ── Loglar ─────────────────────────────────────────────────────
+async function loadLogs() {
+  const params = { limit: 500 };
+  if (logActionF.value) params.action_filter = logActionF.value;
+  if (logUserF.value)   params.user_filter   = logUserF.value;
+  if (logStartF.value)  params.startDate     = logStartF.value;
+  if (logEndF.value)    params.endDate       = logEndF.value;
+  const logsRaw = await fbGet("logs");
+  logsCache = logsRaw ? Object.values(logsRaw).reverse().slice(0,200) : [];
+  renderLogs(); renderLogSummary();
+}
+
+function actionClass(a) {
+  if (!a) return "pending";
+  if (a.includes("DELETE")||a.includes("CANCEL")) return "cancelled";
+  if (a.includes("LOGIN"))  return "exited";
+  if (a.includes("ADD"))    return "updated";
+  if (a.includes("OFF"))    return "off";
+  return "pending";
+}
+
+function renderLogs() {
+  logCount.innerText = logsCache.length + " kayıt";
+  logBody.innerHTML = logsCache.length
+    ? logsCache.map(l=>`
+        <tr>
+          <td style="font-size:11px;color:var(--text2)">${String(l.date).slice(0,19)}</td>
+          <td><span class="badge ${actionClass(l.action)}">${l.action}</span></td>
+          <td>${l.user||""}</td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${l.details||""}</td>
+        </tr>`).join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text2)">Sonuç yok.</td></tr>';
+}
+
+function renderLogSummary() {
+  if (!logsCache.length) { logSummary.style.display="none"; return; }
+  const counts={};
+  logsCache.forEach(l=>{counts[l.action]=(counts[l.action]||0)+1;});
+  logSummaryContent.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:7px">
+    ${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([a,n])=>`<span class="badge ${actionClass(a)}">${a}: ${n}</span>`).join("")}
+  </div>`;
+  logSummary.style.display="block";
+}
+
+function clearLogFilters() {
+  logActionF.value=""; logUserF.value=""; logStartF.value=""; logEndF.value="";
+  logsCache=[];
+  logBody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text2)">Filtreleyin.</td></tr>';
+  logCount.innerText=""; logSummary.style.display="none";
+}
+
+function exportLogs() {
+  if (!logsCache.length) return showToast("Önce logları getirin","err");
+  const headers="Tarih,İşlem,Kullanıcı,Detay";
+  const rows=logsCache.map(l=>`"${String(l.date).slice(0,19)}","${l.action||""}","${l.user||""}","${String(l.details||"").replace(/"/g,'""')}"`);
+  exportCSV(headers, rows, `piano-log-${todayStr()}.csv`);
+}
+
+// ── Araç Raporu ───────────────────────────────────────────────
+let pStart = "", pEnd = "";
+
+function setPlakaRange(range) {
+  const t = todayStr();
+  if (range==="today") { pStart=t; pEnd=t; }
+  else if (range==="week")  { pStart=weekStart(t); pEnd=t; }
+  else if (range==="month") { pStart=monthStart(t); pEnd=t; }
+  document.getElementById("pRStart").value = pStart;
+  document.getElementById("pREnd").value   = pEnd;
+  loadPlakaRapor();
+}
+
+async function loadPlakaRapor() {
+  const s = document.getElementById("pRStart")?.value || todayStr();
+  const e = document.getElementById("pREnd")?.value   || todayStr();
+  pStart=s; pEnd=e;
+  document.getElementById("plakaRaporContent").innerHTML =
+    '<div style="color:var(--text2);text-align:center;padding:20px">Yükleniyor...</div>';
+
+  const data = await calcPlakaFromFirebase(s, e);
+  renderPlakaRapor(data, s, e);
+}
+
+function renderPlakaRapor(data, s, e) {
+  const el = document.getElementById("plakaRaporContent");
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="color:var(--text2);text-align:center;padding:24px">Bu dönemde araç kullanımı yok.</div>';
+    return;
+  }
+
+  const maxCount = data[0].count || 1;
+
+  el.innerHTML = `
+    <div class="stat-cards" style="margin-bottom:14px">
+      <div class="stat-card"><div class="s-val">${data.length}</div><div class="s-lbl">Aktif Araç</div></div>
+      <div class="stat-card"><div class="s-val">${data.reduce((s,x)=>s+x.count,0)}</div><div class="s-lbl">Toplam Sefer</div></div>
+      <div class="stat-card"><div class="s-val" style="font-size:16px">${data[0]?.plaka||"—"}</div><div class="s-lbl">En Çok Kullanan</div></div>
+      <div class="stat-card"><div class="s-val">${data[0]?.gunSayisi||0}</div><div class="s-lbl">Gün (En Aktif)</div></div>
+    </div>
+
+    <div class="panel-card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Plaka</th><th>Sefer</th><th>Gün</th>
+            <th>İlk Kullanım</th><th>Son Kullanım</th><th>Yoğunluk</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map((p,i) => `
+            <tr>
+              <td style="color:var(--text2)">${i+1}</td>
+              <td><b style="color:var(--gold2)">${p.plaka}</b></td>
+              <td><b>${p.count}</b></td>
+              <td>${p.gunSayisi}</td>
+              <td style="color:var(--text2);font-size:11px">${fmtDate(p.ilkKullanim)||"—"}</td>
+              <td style="color:var(--text2);font-size:11px">${fmtDate(p.sonKullanim)||"—"}</td>
+              <td style="min-width:100px">
+                <div style="background:rgba(255,255,255,.05);border-radius:4px;height:18px;overflow:hidden">
+                  <div style="height:100%;background:linear-gradient(90deg,#a07830,#f1d48a);width:${Math.round(p.count/maxCount*100)}%;border-radius:4px"></div>
+                </div>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Ayarlar: PIN Değiştir ──────────────────────────────────────
+async function changePin() {
+  const old = oldPin.value.trim();
+  const n1  = newPin.value.trim();
+  const n2  = newPin2.value.trim();
+  if (!old||!n1||!n2) { pinFeedback.innerHTML='<div class="notice">Tüm alanları doldurun.</div>'; return; }
+  if (n1 !== n2)       { pinFeedback.innerHTML='<div class="notice">Yeni PIN\'ler eşleşmiyor.</div>'; return; }
+  if (n1.length < 4)   { pinFeedback.innerHTML='<div class="notice">PIN en az 4 karakter olmalı.</div>'; return; }
+  const currentPin = await getPin();
+  if (String(old) !== String(currentPin)) {
+    showToast("❌ Mevcut PIN hatalı","err"); return;
+  }
+  await setPin(n1);
+  const r = { success: true };
+  if (r.success) {
+    pinFeedback.innerHTML='<div class="ok">✅ PIN başarıyla değiştirildi. Bir sonraki girişte yeni PIN kullanın.</div>';
+    oldPin.value=""; newPin.value=""; newPin2.value="";
+    // Session'ı temizle, yeniden giriş yaptır
+    setTimeout(() => { sessionStorage.removeItem("adminAuth"); localStorage.removeItem("adminRemPin"); adminLogout(); }, 2000);
+  } else {
+    pinFeedback.innerHTML=`<div class="notice">❌ ${r.message||"Hata"}</div>`;
+  }
+}
+
+// Rapor tab init
+window.addEventListener("DOMContentLoaded",()=>{
+  aRStart.value = weekStart(todayStr());
+  aREnd.value   = todayStr();
+});
+
+
+// ══════════════════════════════════════════════════════════
+// İÇE AKTAR — Tab 6
+// ══════════════════════════════════════════════════════════
+window._importData = [];
+
+/* ── Tarih / Saat / Sayı parse ── */
+function ipDate(v) {
+  if (!v && v !== 0) return '';
+  if (typeof v === 'number') {
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    return d.toISOString().slice(0, 10);
+  }
+  const s = String(v).trim();
+  const m1 = s.match(/^(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{2,4})$/);
+  if (m1) { const y = m1[3].length === 2 ? '20' + m1[3] : m1[3]; return `${y}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`; }
+  const m2 = s.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/);
+  if (m2) return `${m2[1]}-${m2[2].padStart(2,'0')}-${m2[3].padStart(2,'0')}`;
+  return s.slice(0, 10);
+}
+function ipTime(v) {
+  if (!v && v !== 0) return '';
+  if (typeof v === 'number') {
+    const t = Math.round(v * 24 * 60), h = Math.floor(t / 60), m = t % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  const s = String(v).trim().replace('.', ':');
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2,'0')}:${m[2]}` : s;
+}
+function ipSale(v) {
+  return ['evet','yes','true','1','var','x','✓','✔'].includes(String(v || '').trim().toLowerCase());
+}
+function ipNum(v) { const n = parseInt(String(v || '').trim()); return isNaN(n) ? 0 : n; }
+
+/* ── Otomatik sütun eşleştirme ── */
+const IP_ALIASES = {
+  acentaKod:['acentakod','acenta kod','acenta_kod'],
+  date:    ['tarih','date','rezervasyon tarihi','res tarihi','gün','gun'],
+  hotel:   ['acentaadi','acenta adı','acenta adi','otel','hotel','otel adı','otel adi','otel ismi'],
+  notes:   ['grupbaskanadi','grup başkan adı','grup baskan adi','not','note','notlar','açıklama','aciklama','özel'],
+  kart:    ['kartno','kart no','kart','card','ödeme tipi','odeme tipi','kart tipi'],
+  nation:  ['uyruk','milliyet','ülke','ulke','nation','nationality'],
+  staff1:  ['servisciadi','servisci adi','personel','görevli','gorevli','staff','rehber'],
+  staff2:  ['servisciadi2','servisci adi 2','personel2','görevli2','gorevli2','staff2','rehber2'],
+  staff3:  ['servisciadi3','servisci adi 3','personel3','görevli3','gorevli3','staff3','rehber3'],
+  staff4:  ['servisciadi4','servisci adi 4','personel4','görevli4','gorevli4','staff4','rehber4'],
+  adult:   ['pax','yetişkin','yetiskin','adult','büyük','buyuk','yet'],
+  child:   ['paxcocuk','pax çocuk','pax cocuk','çocuk','cocuk','child','küçük','kucuk'],
+  time:    ['giris','giriş','saat','time','rezervasyon saati','res saati','zaman'],
+  cikis:   ['cikis','çıkış','cikti saati','çıktı saati','exit'],
+  ayak:    ['ayak','plaka','araç','arac','plate','taşıt'],
+  subeKod: ['subekod','şube kod','sube kod'],
+  subeAdi: ['subeadi','şube adı','sube adi'],
+  satis:   ['satış','satis','sale','sold','ödeme','odeme'],
+};
+function ipAutoMap(headers) {
+  const map = {};
+  Object.keys(IP_ALIASES).forEach(key => {
+    const found = headers.find(h => IP_ALIASES[key].some(a => String(h).toLowerCase().trim() === a));
+    map[key] = found ? headers.indexOf(found) : -1;
+  });
+  return map;
+}
+function ipProcessRows(headers, rawRows) {
+  const map = ipAutoMap(headers);
+  const g = (row, k) => map[k] >= 0 ? row[map[k]] : '';
+  return rawRows.map((row, i) => {
+    const date  = ipDate(g(row,'date'));
+    const time  = ipTime(g(row,'time'));
+    const hotel = String(g(row,'hotel') || '').trim();
+    const adult = ipNum(g(row,'adult')) || 1;
+    const child = ipNum(g(row,'child'));
+    const nation= String(g(row,'nation') || '').trim().toUpperCase() || '—';
+    const satis = ipSale(g(row,'satis'));
+    const ayak  = String(g(row,'ayak') || '').trim();
+    const notes = String(g(row,'notes') || '').trim();
+    const staff1= String(g(row,'staff1') || '').trim();
+    const staff2= String(g(row,'staff2') || '').trim();
+    const staff3= String(g(row,'staff3') || '').trim();
+    const staff4= String(g(row,'staff4') || '').trim();
+    const ciktiSaati = ipTime(g(row,'cikis'));
+    const kart  = String(g(row,'kart') || '').trim();
+    const errs = [], warns = [];
+    if (!date)  errs.push('Tarih boş');
+    if (!time)  errs.push('Saat boş');
+    if (!hotel) errs.push('Otel boş');
+    if (date  && !/^\d{4}-\d{2}-\d{2}$/.test(date))  warns.push('Tarih format?');
+    if (time  && !/^\d{2}:\d{2}$/.test(time))          warns.push('Saat format?');
+    return { _row: i+2, date, time, hotel, adult, child, nation, satis, ayak, notes, staff1, staff2, staff3, staff4, ciktiSaati, kart,
+      _err: errs, _warn: warns, _st: errs.length ? 'err' : warns.length ? 'warn' : 'ok' };
+  });
+}
+
+/* ── Dosya okuma ── */
+window.importHandleDrop = e => { const f = e.dataTransfer.files[0]; if (f) ipReadFile(f); };
+window.importHandleFile = e => { if (e.target.files[0]) ipReadFile(e.target.files[0]); };
+
+function ipReadFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    let wb;
+    if (ext === 'csv') wb = XLSX.read(e.target.result, { type: 'string', raw: false });
+    else               wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+    if (!data || data.length < 2) { showToast('❌ Dosya boş veya okunamadı', 'err'); return; }
+    const headers = data[0].map(h => String(h || '').trim());
+    const rawRows = data.slice(1).filter(r => r.some(c => c !== '' && c != null));
+    window._importData = ipProcessRows(headers, rawRows);
+    ipShowPreview(file.name);
+  };
+  if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+  else               reader.readAsArrayBuffer(file);
+}
+
+/* ── Önizleme ── */
+function ipShowPreview(fname) {
+  const data = window._importData;
+  const ok   = data.filter(r => r._st === 'ok').length;
+  const warn = data.filter(r => r._st === 'warn').length;
+  const err  = data.filter(r => r._st === 'err').length;
+
+  document.getElementById('importPreview').style.display  = 'block';
+  document.getElementById('importProgress').style.display = 'none';
+  document.getElementById('importCount').textContent = `— ${data.length} kayıt · "${fname}"`;
+  document.getElementById('istTotal').textContent = data.length;
+  document.getElementById('istOk').textContent    = ok + warn;
+  document.getElementById('istWarn').textContent  = warn;
+  document.getElementById('istErr').textContent   = err;
+  document.getElementById('importBaslatBtn').textContent = `🚀 ${ok + warn} Kaydı Firebase'e Aktar`;
+
+  const wb = document.getElementById('importWarnBox');
+  if (err > 0) {
+    wb.style.display = 'block';
+    wb.innerHTML = `⚠️ <b>${err} satırda hata var</b> (Tarih/Saat/Otel eksik) — bu satırlar atlanacak, diğerleri aktarılır.`;
+  } else wb.style.display = 'none';
+
+  const tbody = document.getElementById('importPreviewBody');
+  tbody.innerHTML = data.slice(0, 300).map(r => {
+    const bg = r._st === 'ok' ? 'rgba(20,83,45,.15)' : r._st === 'warn' ? 'rgba(120,53,15,.15)' : 'rgba(127,29,29,.15)';
+    const statusBadge = r._st === 'ok'
+      ? '<span class="badge exited" style="font-size:10px">✓ OK</span>'
+      : r._st === 'warn'
+        ? `<span class="badge updated" style="font-size:10px" title="${r._warn.join(', ')}">⚠ ${r._warn[0]}</span>`
+        : `<span class="badge cancelled" style="font-size:10px" title="${r._err.join(', ')}">✕ ${r._err[0]}</span>`;
+    return `<tr style="background:${bg}">
+      <td style="color:var(--text2);font-size:11px">${r._row}</td>
+      <td>${r.date}</td>
+      <td style="font-weight:800;color:var(--gold2)">${r.time}</td>
+      <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.hotel}</td>
+      <td>${r.adult}</td><td>${r.child}</td>
+      <td>${r.nation}</td>
+      <td>${r.satis ? '💰 EVET' : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.ayak || '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.kart || '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.ciktiSaati || '—'}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('') + (data.length > 300 ? `<tr><td colspan="12" style="text-align:center;color:var(--text2);padding:10px">... ve ${data.length - 300} kayıt daha</td></tr>` : '');
+}
+
+/* ── İptal ── */
+window.importTemizle = () => {
+  window._importData = [];
+  document.getElementById('importPreview').style.display  = 'none';
+  document.getElementById('importProgress').style.display = 'none';
+  document.getElementById('importFile').value = '';
+};
+
+/* ── Aktarım ── */
+window.importBaslat = async () => {
+  const data = (window._importData || []).filter(r => r._st !== 'err');
+  if (!data.length) { showToast('Aktarılacak geçerli kayıt yok', 'err'); return; }
+
+  document.getElementById('importPreview').style.display  = 'none';
+  document.getElementById('importProgress').style.display = 'block';
+  document.getElementById('importDoneBtns').style.display = 'none';
+
+  const log   = document.getElementById('importLog');
+  const pb    = document.getElementById('importProgBar');
+  const pt    = document.getElementById('importProgTxt');
+  const pl    = document.getElementById('importProgLabel');
+  let ok = 0, warns = 0, errs = 0;
+  const total = data.length;
+  document.getElementById('iprTotal').textContent = total;
+  log.innerHTML = '';
+
+  function addLog(msg, color = 'var(--text2)') {
+    log.innerHTML += `<span style="color:${color}">${msg}</span>\n`;
+    log.scrollTop = log.scrollHeight;
+  }
+  function updCards() {
+    const pct = total > 0 ? Math.round((ok + errs + warns) / total * 100) : 0;
+    pb.style.width = pct + '%';
+    pt.textContent = `${ok + errs + warns} / ${total} (${pct}%)`;
+    document.getElementById('iprOk').textContent   = ok;
+    document.getElementById('iprWarn').textContent = warns;
+    document.getElementById('iprErr').textContent  = errs;
+  }
+
+  pl.textContent = 'Firebase bağlanıyor...';
+  addLog('⏳ Firebase bağlantısı kuruluyor...');
+  try {
+    await initFirebase(); // mevcut firebase-api.js fonksiyonu
+    addLog('✓ Bağlantı başarılı — aktarım başlıyor', '#bbf7d0');
+    pl.textContent = `Aktarılıyor — ${total} kayıt`;
+
+    for (let i = 0; i < data.length; i++) {
+      const r  = data[i];
+      const id = Date.now() + i * 7 + Math.floor(Math.random() * 50);
+      const rec = {
+        id, date: r.date, time: r.time, hotel: r.hotel,
+        adult: r.adult, child: r.child,
+        nat: r.nation, nation: r.nation,
+        satis: r.satis, ayak: r.ayak, notes: r.notes,
+        staff1: r.staff1, staff2: r.staff2, staff3: r.staff3, staff4: r.staff4,
+        ciktiSaati: r.ciktiSaati, kart: r.kart,
+        status: 'PENDING', girdi: false, cikti: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _imported: true, _importedBy: 'admin',
+        _importedAt: new Date().toISOString()
+      };
+      try {
+        await fbSet(`rezervasyonlar/${id}`, rec);
+        r._st === 'warn' ? warns++ : ok++;
+        if (i % 25 === 0 || i === data.length - 1)
+          addLog(`✓ [${i+1}/${total}] ${r.date} ${r.time} — ${r.hotel}`, '#bbf7d0');
+      } catch (e) {
+        errs++;
+        addLog(`✕ Satır ${r._row}: ${e.message}`, '#fca5a5');
+      }
+      updCards();
+      if (i % 10 === 9) await new Promise(res => setTimeout(res, 40));
+    }
+
+    pb.style.background = 'linear-gradient(90deg,#16a34a,#4ade80)';
+    pl.textContent = '✅ Aktarım Tamamlandı!';
+    addLog(`\n═══ TAMAMLANDI ═══  Başarılı: ${ok}  Uyarı: ${warns}  Hata: ${errs}`, ok > 0 ? '#bbf7d0' : '#fde68a');
+    showToast(`✅ ${ok + warns} rezervasyon aktarıldı`);
+    document.getElementById('importDoneBtns').style.display = 'flex';
+  } catch (e) {
+    pl.textContent = '❌ Bağlantı hatası!';
+    addLog(`Firebase hatası: ${e.message}`, '#fca5a5');
+    showToast('❌ Firebase bağlantı hatası: ' + e.message, 'err');
+  }
+};
+
+/* ── Şablon İndir ── */
+window.importSablonIndir = () => {
+  const wb = XLSX.utils.book_new();
+  const headers = [
+    'TARIH','ACENTAADI','GRUPBASKANADI','KARTNO','UYRUK',
+    'SERVISCIADI','SERVISCIADI2','SERVISCIADI3','SERVISCIADI4',
+    'PAX','PAXCOCUK','GIRIS','CIKIS','AYAK','SUBEKOD','SUBEADI'
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([
+    headers,
+    ['17.05.2026', 'COMFORT BEACH OTEL', 'PIANO REHBER', '2057', 'BELARUS', 'HALIL HASANOGLU', 'TAMILA TEZ.', '', '', 2, 0, '16:00', '', '1.AYAK', '1', 'MERKEZ'],
+    ['17.05.2026', 'CLUB SALIMA ( BAIAA)', 'PIANO REHBER', '2060', 'RUS', 'CEMAL DOĞAN', 'ALFIIA BIKBOVA', '', '', 4, 0, '16:00', '', '1.AYAK', '1', 'MERKEZ'],
+    ['17.05.2026', 'ARMAS GUL BEACH OTEL', 'PIANO REHBER', '', 'RUS', 'TIMUR EYVAZOV', '', '', '', 1, 0, '16:00', '16:57', '1.AYAK', '1', 'MERKEZ']
+  ]);
+  ws['!cols'] = [{wch:12},{wch:28},{wch:18},{wch:10},{wch:12},{wch:20},{wch:20},{wch:20},{wch:20},{wch:8},{wch:10},{wch:8},{wch:8},{wch:10},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'sayfa1');
+  XLSX.writeFile(wb, 'piano-deri-merkez-sablon.xlsx');
+  showToast('✅ Merkez şablonu indirildi');
+};
+
+/* ── Önizleme İndir ── */
+window.importOnizlemeIndir = () => {
+  if (!window._importData || !window._importData.length) return;
+  const wb = XLSX.utils.book_new();
+  const rows = [['#','Tarih','Saat','Otel','Yet.','Çoc.','Uyruk','Satış','Ayak','Kart','Çıkış','Durum']];
+  window._importData.forEach(r => rows.push([
+    r._row, r.date, r.time, r.hotel, r.adult, r.child,
+    r.nation, r.satis ? 'EVET' : 'HAYIR', r.ayak,
+    r.kart || '—', r.ciktiSaati || '', r._st === 'ok' ? 'Hazır' : r._st === 'warn' ? 'Uyarı' : 'Hata'
+  ]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Önizleme');
+  XLSX.writeFile(wb, 'onizleme.xlsx');
+};
+
+</script>
+</body>
+</html>

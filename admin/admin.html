@@ -62,7 +62,6 @@
       <span id="adminUserLabel" style="font-size:11px;color:var(--text2)"></span>
       <div style="flex:1"></div>
       <a href="../center/dashboard.html" class="btn-dark btn-sm" style="text-decoration:none">🏠 Merkez</a>
-      <a href="arac-takip.html" class="btn-gold btn-sm" style="text-decoration:none">🚗 Araç Takip</a>
       <a href="../hotel/login.html"      class="btn-dark btn-sm" style="text-decoration:none">🏨 Otel</a>
       <button class="btn-red btn-sm" onclick="logout()">⏏ Çıkış</button>
     </div>
@@ -73,7 +72,6 @@
       <button id="tab3" class="tab-btn"        onclick="openTab(3)">📋 Log</button>
       <button id="tab4" class="tab-btn"        onclick="openTab(4)">⚙️ Ayarlar</button>
       <button id="tab5" class="tab-btn"        onclick="openTab(5);loadPlakaRapor()">🚗 Araç Raporu</button>
-      <a href="arac-takip.html" class="tab-btn" style="text-decoration:none;display:inline-flex;align-items:center">🛰️ Canlı Araç Takip</a>
       <button id="tab6" class="tab-btn"        onclick="openTab(6)" style="background:linear-gradient(135deg,rgba(160,120,48,.4),rgba(241,212,138,.15));border-color:var(--gold)">📥 Admin Raporları</button>
       <button id="tab7" class="tab-btn"        onclick="openTab(7);loadUsers()">👤 Kullanıcılar</button>
       <button id="tab8" class="tab-btn"        onclick="openTab(8)">📥 İçe Aktar</button>
@@ -281,13 +279,14 @@
       <div class="panel-card">
         <h3 style="color:var(--gold2);margin-top:0">📥 Rezervasyon İçe Aktar (Excel / CSV)</h3>
         <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.8">
-          Excel veya CSV dosyasından rezervasyonları toplu aktarın.<br>
-          <b style="color:var(--gold)">Not:</b> Dosyada <b>ciktiSaati</b> dolu ise → <b>GİRDİ + ÇIKTI</b> otomatik işaretlenir. <b>girdiSaati</b> dolu ise → sadece <b>GİRDİ</b> işaretlenir.
+          Excel dosyasından (.xlsx) rezervasyonları toplu aktarın.<br>
+          <b style="color:var(--gold)">Sütunlar:</b> TARIH · ACENTAADI · GRUPBASKANADI · KARTNO · UYRUK · SERVİSCİADİ(1-4) · PAX · PAXCOCUK · GİRİS · CİKİS<br>
+          <b style="color:var(--green)">GİRİS</b> dolu → Girdi ✅ &nbsp;&nbsp; <b style="color:var(--blue)">CİKİS</b> dolu → Çıktı ✅ otomatik işaretlenir.
         </p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
-          <input type="file" id="rezImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importRezervasyonlar(event)">
-          <button class="btn-gold" onclick="document.getElementById('rezImportFile').click()">📂 Dosya Seç ve Aktar</button>
-          <a href="/sample-sheets/Reservations.csv" download class="btn-dark btn-sm">⬇ Örnek Dosya İndir</a>
+          <input type="file" id="rezImportFile" accept=".xlsx,.xls" style="display:none" onchange="importRezervasyonlar(event)">
+          <button class="btn-gold" onclick="document.getElementById('rezImportFile').click()">📂 Excel Dosyası Seç (.xlsx)</button>
+          <a href="/sample-sheets/piano_deri_rezervasyon_sablonu.xlsx" download class="btn-dark btn-sm">⬇ Örnek Excel İndir</a>
         </div>
         <div id="importProgress" style="display:none;padding:12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:8px;font-size:13px;color:var(--text2);margin-bottom:12px"></div>
         <div id="importResult"></div>
@@ -324,6 +323,9 @@
 <script src="../config/firebase.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
 <script src="../assets/common.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
 <script src="../assets/firebase-api.js?v=20260515-admin-excel-hotel-lock-notif-fix"></script>
+<link rel="stylesheet" href="../assets/message-widget.css?v=20260524-msg">
+<script src="../assets/message-widget.js?v=20260524-msg"></script>
+
 <script>
 showApiWarning();
 // ── Kullanıcı Doğrulama ──
@@ -359,7 +361,7 @@ function openAdmin() {
 
 // ── Tab ────────────────────────────────────────────────────────
 function openTab(n) {
-  [1,2,3,4,5,6,7].forEach(i => {
+  [1,2,3,4,5,6,7,8].forEach(i => {
     document.getElementById("tabContent"+i).style.display = i===n?"block":"none";
     document.getElementById("tab"+i).classList.toggle("active", i===n);
   });
@@ -662,7 +664,10 @@ function rowVal(row, names) {
   return "";
 }
 
-async function importRezervasyonlar(event) {
+// ── İçe Aktar: parse edilen veriler önizleme için
+let _importParsed = [];
+
+function importRezervasyonlar(event) {
   const file = event.target.files && event.target.files[0];
   event.target.value = "";
   if (!file) return;
@@ -673,85 +678,209 @@ async function importRezervasyonlar(event) {
   progress.style.display = "block";
   progress.textContent   = "Dosya okunuyor...";
   result.innerHTML = "";
+  _importParsed = [];
 
-  const buf  = await file.arrayBuffer();
-  const wb   = XLSX.read(buf, { type:"array" });
-  const ws   = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval:"" });
-  if (!rows.length) { progress.textContent = "Dosya boş!"; return; }
-
-  const user = JSON.parse(sessionStorage.getItem("pianoUser") || "{}");
-  let added = 0, skipped = 0, errors = [];
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    progress.textContent = `İşleniyor: ${i+1} / ${rows.length}`;
-
-    const date  = rowVal(row, ["date","Tarih","TARİH","DATE"]);
-    const time  = rowVal(row, ["time","Saat","SAAT","TIME"]);
-    const hotel = rowVal(row, ["hotel","Otel","OTEL","Hotel Adı","OTEL ADI"]);
-    if (!date || !time || !hotel) { skipped++; continue; }
-
-    // Saat & çıkış saati
-    const girdiSaati  = rowVal(row, ["girdiSaati","Giriş Saati","GİRİŞ SAATİ","giris_saati"]) || "";
-    const ciktiSaati  = rowVal(row, ["ciktiSaati","Çıkış Saati","ÇIKIŞ SAATİ","cikis_saati"]) || "";
-
-    // ── GİRDİ / ÇIKTI OTOMATİK İŞARETLE ──
-    const girdi = !!(girdiSaati || ciktiSaati);  // girdi saati VEYA çıkış saati varsa girdi=true
-    const cikti = !!ciktiSaati;                   // sadece çıkış saati varsa cikti=true
-
-    // Satış / Boş
-    const satisRaw = String(rowVal(row, ["satis","Satış","SATIŞ","satis"])).toUpperCase();
-    const satis    = satisRaw === "TRUE" || satisRaw === "SATIŞ" || satisRaw === "EVET" || satisRaw === "1";
-
-    const rez = {
-      date,
-      time,
-      hotel,
-      adult:      Number(rowVal(row, ["adult","Yetişkin","YETİŞKİN","yetiskin"])) || 0,
-      child:      Number(rowVal(row, ["child","Çocuk","ÇOCUK","cocuk"]))   || 0,
-      nation:     rowVal(row, ["nation","nat","Uyruk","UYRUK","nation"]) || "",
-      kart:       rowVal(row, ["kart","kartno","Kart No","KART NO"])     || "",
-      ayak:       rowVal(row, ["ayak","plaka","Plaka","PLAKA"])          || "",
-      notes:      rowVal(row, ["notes","not","Not","NOT"])               || "",
-      staff1:     rowVal(row, ["staff1","T1","Tezgahtar 1"])             || "",
-      staff2:     rowVal(row, ["staff2","T2","Tezgahtar 2"])             || "",
-      staff3:     rowVal(row, ["staff3","T3","Tezgahtar 3"])             || "",
-      staff4:     rowVal(row, ["staff4","T4","Tezgahtar 4"])             || "",
-      girdi,
-      cikti,
-      girdiSaati,
-      ciktiSaati,
-      satis,
-      status:     cikti ? "COMPLETED" : "PENDING",
-      _importedAt: new Date().toISOString(),
-      _importedBy: user.username || "admin",
-    };
-
+  const reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      await addReservation(rez);
-      added++;
-    } catch(e) {
-      errors.push(`Satır ${i+2}: ${e.message}`);
+      const buf  = e.target.result;
+      const wb   = XLSX.read(buf, { type:"array" });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval:"", header:1 });
+
+      if (rows.length < 2) { progress.textContent = "Dosya boş!"; return; }
+
+      // Header satırını bul
+      let headerRowIdx = 0;
+      for (let i = 0; i < Math.min(rows.length, 5); i++) {
+        if (rows[i].some(v => String(v).toUpperCase().includes("TARIH"))) {
+          headerRowIdx = i; break;
+        }
+      }
+      const headers = rows[headerRowIdx].map(h => String(h).toUpperCase().trim());
+
+      function col(row, name) {
+        const idx = headers.indexOf(name.toUpperCase());
+        return idx >= 0 ? String(row[idx] || "").trim() : "";
+      }
+
+      const dataRows = rows.slice(headerRowIdx + 2).filter(r => r.some(v => v !== "" && v !== null));
+      if (!dataRows.length) { progress.textContent = "Veri satırı bulunamadı!"; return; }
+
+      const user = JSON.parse(sessionStorage.getItem("pianoUser") || "{}");
+      _importParsed = [];
+
+      for (const row of dataRows) {
+        const tarihRaw = col(row, "TARIH");
+        if (!tarihRaw) continue;
+        let date = tarihRaw;
+        if (tarihRaw.includes(".")) {
+          const p = tarihRaw.split(".");
+          if (p.length === 3) date = `${p[2]}-${p[1].padStart(2,"0")}-${p[0].padStart(2,"0")}`;
+        }
+        const hotel = col(row, "ACENTAADI");
+        if (!hotel) continue;
+
+        const girdiSaati = col(row, "GIRIS") || "";
+        const ciktiSaati = col(row, "CIKIS") || "";
+        const girdi = !!girdiSaati;
+        const cikti = !!ciktiSaati;
+        const satisRaw = col(row, "SATIS");
+        const satis = ["EVET","TRUE","1","E","YES"].includes(satisRaw.toUpperCase());
+        const grupbsk = col(row, "GRUPBASKANADI") || "";
+
+        _importParsed.push({
+          date, hotel,
+          time:       girdiSaati || "00:00",
+          adult:      Number(col(row, "PAX"))      || 0,
+          child:      Number(col(row, "PAXCOCUK")) || 0,
+          nation:     col(row, "UYRUK")            || "",
+          kart:       col(row, "KARTNO")           || "",
+          kartno:     col(row, "KARTNO")           || "",
+          ayak:       "",
+          notes:      grupbsk,
+          grupbsk,
+          staff1: col(row,"SERVISCIADI")||"",
+          staff2: col(row,"SERVISCIADI2")||"",
+          staff3: col(row,"SERVISCIADI3")||"",
+          staff4: col(row,"SERVISCIADI4")||"",
+          girdi, cikti, girdiSaati, ciktiSaati, satis,
+          status: cikti ? "COMPLETED" : girdi ? "INSIDE" : "PENDING",
+          _importedAt: new Date().toISOString(),
+          _importedBy: user.username || "admin",
+        });
+      }
+
+      progress.style.display = "none";
+      renderImportPreview();
+
+    } catch(err) {
+      progress.textContent = "❌ Dosya okunamadı: " + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImportPreview() {
+  const result = document.getElementById("importResult");
+  if (!_importParsed.length) { result.innerHTML = '<div style="color:var(--red)">Geçerli veri bulunamadı.</div>'; return; }
+
+  const cGirdi = _importParsed.filter(r=>r.girdi).length;
+  const cCikti = _importParsed.filter(r=>r.cikti).length;
+  const cSatis = _importParsed.filter(r=>r.satis).length;
+
+  // Group by date
+  const byDate = {};
+  for (const r of _importParsed) {
+    if (!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push(r);
+  }
+
+  let tableRows = "";
+  for (const [date, rows] of Object.entries(byDate).sort()) {
+    tableRows += `<tr style="background:rgba(201,168,76,.08)">
+      <td colspan="8" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.2em">
+        📅 ${date} — ${rows.length} kayıt
+      </td></tr>`;
+    for (const r of rows) {
+      tableRows += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:5px 8px;font-size:12px">${r.time}</td>
+        <td style="padding:5px 8px;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.hotel}</td>
+        <td style="padding:5px 8px;font-size:12px">${r.adult}+${r.child}</td>
+        <td style="padding:5px 8px;font-size:12px">${r.nation}</td>
+        <td style="padding:5px 8px;font-size:12px">${r.kart}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${r.notes||""}</td>
+        <td style="padding:5px 8px;text-align:center">${r.girdi?'<span style="color:#35d979;font-size:12px">G✓</span>':''} ${r.cikti?'<span style="color:#68d4ff;font-size:12px">Ç✓</span>':''}</td>
+        <td style="padding:5px 8px;text-align:center">${r.satis?'<span style="color:#35d979;font-weight:700;font-size:12px">SATIŞ</span>':''}</td>
+      </tr>`;
     }
   }
 
-  progress.textContent = `✅ Tamamlandı: ${added} eklendi, ${skipped} atlandı${errors.length ? `, ${errors.length} hata` : ""}.`;
-
-  // Sonuç özeti
   result.innerHTML = `
-    <div style="margin-top:12px;padding:14px;background:rgba(53,217,121,.08);border:1px solid rgba(53,217,121,.2);border-radius:8px">
-      <div style="font-size:14px;font-weight:700;color:#35d979;margin-bottom:8px">✅ İçe Aktarma Tamamlandı</div>
+    <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--gold2);margin-bottom:8px">📋 Önizleme — ${_importParsed.length} kayıt hazır</div>
+      <div style="display:flex;gap:20px;font-size:12px;color:var(--text2)">
+        <span>✅ Toplam: <b style="color:var(--text)">${_importParsed.length}</b></span>
+        <span>🔑 Girdi: <b style="color:var(--gold)">${cGirdi}</b></span>
+        <span>🔑 Çıktı: <b style="color:var(--blue)">${cCikti}</b></span>
+        <span>💰 Satış: <b style="color:#35d979">${cSatis}</b></span>
+      </div>
+    </div>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:12px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:var(--bg2)">
+          <tr>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left;letter-spacing:.2em">SAAT</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left">OTEL</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left">PAX</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left">UYRUK</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left">KART</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:left">NOT</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:center">G/Ç</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--gold);text-align:center">SATIŞ</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-gold" onclick="doImportAll()" style="padding:12px 28px;font-size:13px;font-weight:700">
+        ✅ ${_importParsed.length} Kaydı Firebase'e Yükle
+      </button>
+      <button class="btn-dark" onclick="document.getElementById('importResult').innerHTML='';_importParsed=[];" style="padding:12px 20px">
+        ✕ İptal
+      </button>
+    </div>`;
+}
+
+async function doImportAll() {
+  const total = _importParsed.length;
+  if (!total) return;
+
+  const result = document.getElementById("importResult");
+  const progress = document.getElementById("importProgress");
+  progress.style.display = "block";
+  progress.textContent = "Yükleniyor: 0 / " + total;
+
+  // Önizlemeyi gizle, progress göster
+  result.innerHTML = "";
+
+  let added = 0, errors = 0;
+
+  // 10'ar batch ile yükle (Firebase rate limit için)
+  const BATCH = 10;
+  for (let i = 0; i < total; i += BATCH) {
+    const batch = _importParsed.slice(i, i + BATCH);
+    await Promise.all(batch.map(async rez => {
+      try {
+        await addReservation(rez);
+        added++;
+      } catch(e) {
+        errors++;
+        console.error("Import err:", e.message);
+      }
+    }));
+    progress.textContent = `Yükleniyor: ${Math.min(i + BATCH, total)} / ${total}`;
+    // Kısa bekleme (Firebase throttle önlemi)
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  progress.textContent = `✅ Tamamlandı: ${added} eklendi${errors ? ", " + errors + " hata" : ""}.`;
+  _importParsed = [];
+
+  const cGirdi = _importParsed.filter ? 0 : 0;
+  result.innerHTML = `
+    <div style="padding:16px;background:rgba(53,217,121,.08);border:1px solid rgba(53,217,121,.2);border-radius:8px">
+      <div style="font-size:14px;font-weight:700;color:#35d979;margin-bottom:8px">✅ Yükleme Tamamlandı</div>
       <div style="font-size:13px;color:var(--text2);line-height:2">
-        📋 Toplam satır: <b style="color:var(--text)">${rows.length}</b><br>
-        ✅ Eklenen: <b style="color:#35d979">${added}</b><br>
-        ⏭ Atlanan (eksik alan): <b style="color:var(--warn)">${skipped}</b><br>
-        🔑 Girdi/Çıktı otomatik işaretlendi: <b style="color:var(--gold)">${rows.filter(r => rowVal(r,["ciktiSaati","Çıkış Saati","ÇIKIŞ SAATİ","cikis_saati"])).length} kayıt</b>
+        ✅ Yüklenen: <b style="color:#35d979">${added}</b><br>
+        ${errors ? `❌ Hata: <b style="color:var(--red)">${errors}</b><br>` : ""}
       </div>
     </div>`;
 
-  if (added > 0) showToast(`✅ ${added} rezervasyon aktarıldı — Girdi/Çıktı otomatik işaretlendi`);
+  showToast(`✅ ${added} rezervasyon Firebase'e yüklendi`);
 }
+
 
 async function importHotelsExcel(event) {
   const file = event.target.files && event.target.files[0];

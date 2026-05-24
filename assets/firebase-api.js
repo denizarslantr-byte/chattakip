@@ -7,13 +7,13 @@ let db = null;
 async function initFirebase() {
   if (db) return db;
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const { getDatabase, ref, get, set, push, update, remove, query, orderByChild, equalTo, onValue } =
+  const { getDatabase, ref, get, set, push, update, remove, query, orderByChild, equalTo, limitToLast, onValue } =
     await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
 
   const app = initializeApp(FIREBASE_CONFIG);
   db = getDatabase(app);
 
-  window._fb = { ref, get, set, push, update, remove, query, orderByChild, equalTo, onValue };
+  window._fb = { ref, get, set, push, update, remove, query, orderByChild, equalTo, limitToLast, onValue };
   return db;
 }
 
@@ -54,29 +54,113 @@ async function setPin(newPin) {
   await fbSet("ayarlar/adminPin", newPin);
 }
 
-// ── Rezervasyonlar ────────────────────────────────────────────
-async function getReservations(date) {
-  const data = await fbGet("rezervasyonlar");
+// ── Rezervasyonlar (TARİH BAZLI OKUMA) ─────────────────────────────
+// Yeni yapı:
+// rezervasyonlar/2026-05-24/<id>
+// rezervasyon_index/<id> = "2026-05-24"
+// Böylece merkez/otel ekranı sadece seçilen günü okur; eski günler Firebase download tüketmez.
+function rezDateKey(date) {
+  return String(date || todayStr?.() || new Date().toISOString().slice(0,10)).slice(0,10);
+}
+
+function normalizeRezList(data, date) {
   if (!data) return [];
-  return Object.entries(data)
-    .map(([key, val]) => ({ ...val, _key: key }))
-    .filter(r => !date || r.date === date)
-    .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  // Yeni tarih bazlı node: rezervasyonlar/YYYY-MM-DD/id
+  const dateKey = date ? rezDateKey(date) : null;
+  const out = [];
+  Object.entries(data).forEach(([key, val]) => {
+    if (!val || typeof val !== 'object') return;
+    // Eğer val.date varsa bu tek rezervasyondur.
+    if (val.date || val.time || val.hotel) {
+      out.push({ ...val, id: val.id || key, _key: key });
+      return;
+    }
+    // Eğer val içinde rezervasyonlar varsa bu tarih klasörüdür.
+    Object.entries(val).forEach(([rid, r]) => {
+      if (r && typeof r === 'object') out.push({ ...r, id: r.id || rid, _key: rid, date: r.date || key });
+    });
+  });
+  return out
+    .filter(r => !dateKey || String(r.date) === dateKey)
+    .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+}
+
+async function getReservations(date) {
+  if (date) {
+    const day = rezDateKey(date);
+    const dayData = await fbGet(`rezervasyonlar/${day}`);
+    if (dayData) return normalizeRezList(dayData, day);
+
+    // Eski düz yapıdan geçiş dönemi fallback: sadece gerekirse eski node okunur.
+    const legacy = await fbGet('rezervasyonlar');
+    return normalizeRezList(legacy, day);
+  }
+
+  // Rapor/export ekranları için tüm veri. Günlük ekranlarda bunu kullanmayın.
+  const data = await fbGet('rezervasyonlar');
+  return normalizeRezList(data, '');
+}
+
+async function findReservationDate(id) {
+  const key = String(id);
+  const indexed = await fbGet(`rezervasyon_index/${key}`);
+  if (indexed) return indexed;
+
+  // Index yoksa sadece bugün ve yarını hızlı kontrol et.
+  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0,10);
+  const dates = [today];
+  try { dates.push(addDays(today, 1), addDays(today, -1)); } catch(_) {}
+  for (const d of [...new Set(dates)]) {
+    const item = await fbGet(`rezervasyonlar/${d}/${key}`);
+    if (item) { await fbSet(`rezervasyon_index/${key}`, d); return d; }
+  }
+
+  // Son çare: tüm rezervasyonları tara. Bu sadece eski veriden kalan tekil işlemlerde çalışır.
+  const data = await fbGet('rezervasyonlar');
+  if (data) {
+    for (const [dateOrId, val] of Object.entries(data)) {
+      if (!val || typeof val !== 'object') continue;
+      if (String(dateOrId) === key && val.date) { await fbSet(`rezervasyon_index/${key}`, val.date); return val.date; }
+      if (val[key]) { const d = val[key].date || dateOrId; await fbSet(`rezervasyon_index/${key}`, d); return d; }
+    }
+  }
+  return null;
 }
 
 async function addReservation(rez) {
-  const id = Date.now() + Math.floor(Math.random() * 1000);
-  const data = { ...rez, id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  await fbSet(`rezervasyonlar/${id}`, data);
+  const id = String(Date.now() + Math.floor(Math.random() * 1000));
+  const day = rezDateKey(rez.date);
+  const data = { ...rez, id, date: day, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  await fbSet(`rezervasyonlar/${day}/${id}`, data);
+  await fbSet(`rezervasyon_index/${id}`, day);
   return id;
 }
 
 async function updateReservation(id, data) {
-  await fbUpdate(`rezervasyonlar/${id}`, { ...data, updatedAt: new Date().toISOString() });
+  const key = String(id);
+  const oldDate = await findReservationDate(key);
+  const newDate = data.date ? rezDateKey(data.date) : oldDate;
+  if (!newDate) throw new Error('Rezervasyon tarihi bulunamadı: ' + key);
+
+  const payload = { ...data, updatedAt: new Date().toISOString() };
+  if (data.date) payload.date = newDate;
+
+  if (oldDate && oldDate !== newDate) {
+    const oldData = await fbGet(`rezervasyonlar/${oldDate}/${key}`);
+    await fbSet(`rezervasyonlar/${newDate}/${key}`, { ...(oldData || {}), ...payload, id: key, date: newDate });
+    await fbRemove(`rezervasyonlar/${oldDate}/${key}`);
+  } else {
+    await fbUpdate(`rezervasyonlar/${newDate}/${key}`, payload);
+  }
+  await fbSet(`rezervasyon_index/${key}`, newDate);
 }
 
 async function deleteReservation(id) {
-  await fbRemove(`rezervasyonlar/${id}`);
+  const key = String(id);
+  const day = await findReservationDate(key);
+  if (day) await fbRemove(`rezervasyonlar/${day}/${key}`);
+  else await fbRemove(`rezervasyonlar/${key}`); // eski düz yapı fallback
+  await fbRemove(`rezervasyon_index/${key}`);
 }
 
 // ── Oteller ──────────────────────────────────────────────────
