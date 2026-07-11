@@ -1,0 +1,444 @@
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────
+   PIANO LEATHER & FUR — DESIGN TOKENS v1.1
+   Mini Luxury Design System
+   Quiet Luxury · Minimal · Timeless
+───────────────────────────────────────────── */
+
+:root {
+  /* ── Font size base ── */
+  --font-size: 16px;
+
+  /* ── Piano Brand Palette ── */
+  --ds-black:       #111111;
+  --ds-gold:        #C7A45A;
+  --ds-ivory:       #F7F3EC;
+  --ds-card-bg:     #1B1B1B;
+  --ds-white:       #F5F5F5;
+  --ds-gray:        #A3A3A3;
+  --ds-border:      #3A3A3A;
+
+  /* ── Tailwind Token Contract (required by index.css) ── */
+  --background:             var(--ds-black);
+  --foreground:             var(--ds-white);
+  --card:                   var(--ds-card-bg);
+  --card-foreground:        var(--ds-white);
+  --popover:                var(--ds-card-bg);
+  --popover-foreground:     var(--ds-white);
+  --primary:                var(--ds-white);
+  --primary-foreground:     var(--ds-black);
+  --secondary:              var(--ds-card-bg);
+  --secondary-foreground:   var(--ds-ivory);
+  --muted:                  var(--ds-border);
+  --muted-foreground:       var(--ds-gray);
+  --accent:                 var(--ds-gold);
+  --accent-foreground:      var(--ds-black);
+  --destructive:            #9B2335;
+  --destructive-foreground: var(--ds-white);
+  --border:                 var(--ds-border);
+  --input:                  transparent;
+  --input-background:       var(--ds-card-bg);
+  --switch-background:      var(--ds-border);
+  --ring:                   var(--ds-gold);
+
+  /* ── Radius ── */
+  --radius: 0.75rem;   /* 12px */
+
+  /* ── Typography ── */
+  --font-heading:   'Cormorant Garamond', Georgia, serif;
+  --font-body:      'Montserrat', system-ui, sans-serif;
+  --font-weight-thin:     300;
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+
+  /* ── Spacing Scale (8px system) ── */
+  --space-1:  8px;
+  --space-2:  16px;
+  --space-3:  24px;
+  --space-4:  32px;
+  --space-6:  48px;
+  --space-8:  64px;
+  --space-12: 96px;
+
+  /* ── Layout ── */
+  --container-max:  1280px;
+  --content-max:    1180px;
+  --container-px:   var(--space-4);
+
+  /* ── Border ── */
+  --border-width:   1px;
+  --border-radius:  var(--radius);
+  --border-radius-sm: 6px;
+  --border-radius-lg: 16px;
+
+  /* ── Motion ── */
+  --motion-fast:    150ms;
+  --motion-base:    200ms;
+  --motion-slow:    250ms;
+  --motion-ease:    cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Shadow ── */
+  --shadow-card:    0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-hover:   0 2px 8px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  /* ── Chart tokens (preserved from contract) ── */
+  --chart-1: #C7A45A;
+  --chart-2: #A3A3A3;
+  --chart-3: #F7F3EC;
+  --chart-4: #3A3A3A;
+  --chart-5: #1B1B1B;
+
+  /* ── Sidebar tokens (preserved from contract) ── */
+  --sidebar:                  var(--ds-card-bg);
+  --sidebar-foreground:       var(--ds-white);
+  --sidebar-primary:          var(--ds-gold);
+  --sidebar-primary-foreground: var(--ds-black);
+  --sidebar-accent:           var(--ds-border);
+  --sidebar-accent-foreground: var(--ds-white);
+  --sidebar-border:           var(--ds-border);
+  --sidebar-ring:             var(--ds-gold);
+}
+
+/* ── Dark mode (Piano is inherently dark-first) ── */
+.dark {
+  --background:           var(--ds-black);
+  --foreground:           var(--ds-white);
+  --card:                 var(--ds-card-bg);
+  --card-foreground:      var(--ds-white);
+  --popover:              var(--ds-card-bg);
+  --popover-foreground:   var(--ds-white);
+  --primary:              var(--ds-white);
+  --primary-foreground:   var(--ds-black);
+  --secondary:            var(--ds-card-bg);
+  --secondary-foreground: var(--ds-ivory);
+  --muted:                var(--ds-border);
+  --muted-foreground:     var(--ds-gray);
+  --accent:               var(--ds-gold);
+  --accent-foreground:    var(--ds-black);
+  --border:               var(--ds-border);
+  --ring:                 var(--ds-gold);
+}
+
+/* ── Tailwind @theme mapping (preserved contract) ── */
+@theme inline {
+  --color-background:             var(--background);
+  --color-foreground:             var(--foreground);
+  --color-card:                   var(--card);
+  --color-card-foreground:        var(--card-foreground);
+  --color-popover:                var(--popover);
+  --color-popover-foreground:     var(--popover-foreground);
+  --color-primary:                var(--primary);
+  --color-primary-foreground:     var(--primary-foreground);
+  --color-secondary:              var(--secondary);
+  --color-secondary-foreground:   var(--secondary-foreground);
+  --color-muted:                  var(--muted);
+  --color-muted-foreground:       var(--muted-foreground);
+  --color-accent:                 var(--accent);
+  --color-accent-foreground:      var(--accent-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:                 var(--border);
+  --color-input:                  var(--input);
+  --color-input-background:       var(--input-background);
+  --color-switch-background:      var(--switch-background);
+  --color-ring:                   var(--ring);
+  --color-chart-1:                var(--chart-1);
+  --color-chart-2:                var(--chart-2);
+  --color-chart-3:                var(--chart-3);
+  --color-chart-4:                var(--chart-4);
+  --color-chart-5:                var(--chart-5);
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
+  --color-sidebar:                    var(--sidebar);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-border:             var(--sidebar-border);
+  --color-sidebar-ring:               var(--sidebar-ring);
+
+  /* ── Piano extended tokens exposed to Tailwind ── */
+  --color-ds-black:   var(--ds-black);
+  --color-ds-gold:    var(--ds-gold);
+  --color-ds-ivory:   var(--ds-ivory);
+  --color-ds-card-bg: var(--ds-card-bg);
+  --color-ds-white:   var(--ds-white);
+  --color-ds-gray:    var(--ds-gray);
+  --color-ds-border:  var(--ds-border);
+}
+
+/* ── Base layer ── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: var(--font-size);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.6;
+  }
+
+  /* ── Heading typography ── */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    color: var(--ds-white);
+  }
+
+  h1 { font-size: clamp(2.5rem, 5vw, 5rem); }
+  h2 { font-size: clamp(1.875rem, 3.5vw, 3rem); }
+  h3 { font-size: clamp(1.5rem, 2.5vw, 2rem); }
+  h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+  h5 { font-size: 1.25rem; }
+  h6 { font-size: 1rem; }
+
+  p {
+    font-family: var(--font-body);
+    font-weight: var(--font-weight-normal);
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--ds-white);
+  }
+
+  label {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+
+  button {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  input, textarea, select {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--motion-base) var(--motion-ease);
+  }
+
+  /* ── Scrollbar ── */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ds-border) transparent;
+  }
+
+  *::-webkit-scrollbar { width: 4px; height: 4px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--ds-border);
+    border-radius: 2px;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--ds-gray); }
+
+  /* ── Selection ── */
+  ::selection {
+    background: var(--ds-gold);
+    color: var(--ds-black);
+  }
+
+  /* ── Focus ring ── */
+  :focus-visible {
+    outline: 1px solid var(--ds-gold);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Utility layer ── */
+@layer utilities {
+  /* Container */
+  .container-piano {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--container-px);
+  }
+
+  .content-piano {
+    width: 100%;
+    max-width: var(--content-max);
+    margin-inline: auto;
+  }
+
+  /* Typography helpers */
+  .font-heading  { font-family: var(--font-heading); }
+  .font-body     { font-family: var(--font-body); }
+  .text-gold     { color: var(--ds-gold); }
+  .text-ivory    { color: var(--ds-ivory); }
+  .text-muted    { color: var(--ds-gray); }
+  .tracking-luxury { letter-spacing: 0.12em; }
+  .uppercase-label {
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Gold divider line */
+  .divider-gold {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--ds-gold) 20%,
+      var(--ds-gold) 80%,
+      transparent
+    );
+    opacity: 0.4;
+  }
+
+  /* Motion presets */
+  .motion-fade {
+    transition: opacity var(--motion-base) var(--motion-ease);
+  }
+  .motion-lift {
+    transition:
+      transform var(--motion-base) var(--motion-ease),
+      box-shadow var(--motion-base) var(--motion-ease);
+  }
+  .motion-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  /* Button variants */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: 14px var(--space-4);
+    background: var(--ds-white);
+    color: var(--ds-black);
+    border: var(--border-width) solid var(--ds-white);
+    border-radius: var(--border-radius);
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      background var(--motion-base) var(--motion-ease),
+      color var(--motion-base) var(--motion-ease),
+      border-color var(--motion-base) var(--motion-ease);
+  }
+  .btn-primary:hover {
+    background: var(--ds-gold);
+    border-color: var(--ds-gold);
+    color: var(--ds-black);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: 14px var(--space-4);
+    background: transparent;
+    color: var(--ds-white);
+    border: var(--border-width) solid var(--ds-border);
+    border-radius: var(--border-radius);
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      border-color var(--motion-base) var(--motion-ease),
+      color var(--motion-base) var(--motion-ease);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ds-white);
+    color: var(--ds-white);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: 14px var(--space-4);
+    background: transparent;
+    color: var(--ds-gray);
+    border: none;
+    border-radius: var(--border-radius);
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--motion-base) var(--motion-ease);
+  }
+  .btn-ghost:hover {
+    color: var(--ds-white);
+  }
+
+  /* Card variants */
+  .card-flat {
+    background: var(--ds-card-bg);
+    border: var(--border-width) solid var(--ds-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+  }
+
+  .card-minimal {
+    background: transparent;
+    border-bottom: var(--border-width) solid var(--ds-border);
+    border-radius: 0;
+    padding-block: var(--space-4);
+  }
+
+  .card-hover {
+    background: var(--ds-card-bg);
+    border: var(--border-width) solid var(--ds-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-card);
+    transition:
+      border-color var(--motion-base) var(--motion-ease),
+      box-shadow var(--motion-base) var(--motion-ease),
+      transform var(--motion-base) var(--motion-ease);
+  }
+  .card-hover:hover {
+    border-color: var(--ds-gold);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+}
